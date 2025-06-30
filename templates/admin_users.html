@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users - Print Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-people me-2"></i>User Management</h2>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Admin
+        </a>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+            <i class="bi bi-person-plus me-1"></i>Add User
+        </button>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="card">
+    <div class="card-body">
+        {% if users.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Role</th>
+                            <th>Balance</th>
+                            <th>Quota</th>
+                            <th>Department</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users.items %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-person-circle me-2 text-primary"></i>
+                                    <div>
+                                        <div class="fw-bold">{{ user.username }}</div>
+                                        <small class="text-muted">{{ user.email }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'danger' if user.role == 'admin' else 'primary' }}">
+                                    {{ user.role.title() }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-success">${{ "%.2f"|format(user.balance) }}</div>
+                            </td>
+                            <td>
+                                <div>{{ user.get_monthly_usage() }}/{{ user.quota_limit }}</div>
+                                <div class="progress" style="height: 4px;">
+                                    {% set usage_percent = (user.get_monthly_usage() / user.quota_limit * 100) if user.quota_limit > 0 else 0 %}
+                                    <div class="progress-bar bg-{{ 'danger' if usage_percent > 90 else 'warning' if usage_percent > 70 else 'success' }}" 
+                                         style="width: {{ usage_percent }}%"></div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if user.department %}
+                                    {{ user.department.name }}
+                                {% else %}
+                                    <span class="text-muted">No department</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">
+                                    {{ 'Active' if user.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>{{ user.created_at.strftime('%b %d, %Y') }}</td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    {% if user.id != current_user.id %}
+                                        <button class="btn btn-sm btn-outline-danger" 
+                                                onclick="toggleUserStatus({{ user.id }}, {{ user.is_active|lower }})">
+                                            <i class="bi bi-{{ 'pause' if user.is_active else 'play' }}"></i>
+                                        </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if users.pages > 1 %}
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if users.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_users', page=users.prev_num) }}">Previous</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for page_num in users.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != users.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('admin_users', page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if users.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_users', page=users.next_num) }}">Next</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-people text-muted display-4"></i>
+                <h4 class="mt-3">No users found</h4>
+                <p class="text-muted">Start by adding your first user</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                    <i class="bi bi-person-plus me-1"></i>Add User
+                </button>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('admin_add_user') }}">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" name="username" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" name="email" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" name="password" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Role</label>
+                                <select class="form-select" name="role" required>
+                                    <option value="user">User</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="balance" class="form-label">Initial Balance</label>
+                                <input type="number" class="form-control" name="balance" value="10.00" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quota_limit" class="form-label">Monthly Quota</label>
+                                <input type="number" class="form-control" name="quota_limit" value="500" min="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleUserStatus(userId, isActive) {
+    const action = isActive ? 'deactivate' : 'activate';
+    if (confirm(`Are you sure you want to ${action} this user?`)) {
+        fetch(`/admin/user/${userId}/toggle-status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error updating user status');
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

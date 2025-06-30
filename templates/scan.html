@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}Scan Documents - Print Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="bi bi-camera me-2"></i>Scan Documents</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('start_scan') }}" id="scanForm">
+                    <!-- Scanner Selection -->
+                    <div class="mb-4">
+                        <label for="scanner_id" class="form-label">Select Scanner</label>
+                        {% if scanners %}
+                            <select class="form-select" name="scanner_id" required>
+                                <option value="">Choose a scanner...</option>
+                                {% for scanner in scanners %}
+                                    <option value="{{ scanner.id }}" 
+                                            data-location="{{ scanner.location }}"
+                                            data-status="{{ scanner.status }}">
+                                        {{ scanner.name }} - {{ scanner.location }}
+                                        {% if scanner.status != 'online' %}({{ scanner.status.title() }}){% endif %}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle me-1"></i>
+                                No scanners available. Please contact your administrator.
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Scan Settings -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="resolution" class="form-label">
+                                <i class="bi bi-aspect-ratio me-1"></i>Resolution (DPI)
+                            </label>
+                            <select class="form-select" name="resolution">
+                                <option value="150">150 DPI (Draft)</option>
+                                <option value="300" selected>300 DPI (Standard)</option>
+                                <option value="600">600 DPI (High Quality)</option>
+                                <option value="1200">1200 DPI (Professional)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="color_mode" class="form-label">
+                                <i class="bi bi-palette me-1"></i>Color Mode
+                            </label>
+                            <select class="form-select" name="color_mode">
+                                <option value="color" selected>Color</option>
+                                <option value="grayscale">Grayscale</option>
+                                <option value="bw">Black & White</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="output_format" class="form-label">
+                                <i class="bi bi-file-earmark me-1"></i>Output Format
+                            </label>
+                            <select class="form-select" name="output_format">
+                                <option value="pdf" selected>PDF</option>
+                                <option value="jpg">JPEG</option>
+                                <option value="png">PNG</option>
+                                <option value="tiff">TIFF</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="destination_type" class="form-label">
+                                <i class="bi bi-arrow-right me-1"></i>Destination
+                            </label>
+                            <select class="form-select" name="destination_type" onchange="updateDestination()">
+                                <option value="download" selected>Download</option>
+                                <option value="email">Email</option>
+                                <option value="folder">Network Folder</option>
+                                <option value="cloud">Cloud Storage</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Destination Details -->
+                    <div id="destination_details" style="display: none;">
+                        <div class="mb-3">
+                            <label for="destination_address" class="form-label">Destination Address</label>
+                            <input type="text" class="form-control" name="destination_address" 
+                                   placeholder="Enter email address or folder path">
+                        </div>
+                    </div>
+                    
+                    <!-- OCR Settings -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="ocr_enabled" id="ocr_enabled">
+                            <label class="form-check-label" for="ocr_enabled">
+                                <i class="bi bi-type me-1"></i>
+                                Enable OCR (Optical Character Recognition)
+                            </label>
+                        </div>
+                        <small class="text-muted">Extract text from scanned documents for searchability</small>
+                    </div>
+                    
+                    <!-- Document Classification -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="document_type" class="form-label">
+                                <i class="bi bi-tags me-1"></i>Document Type
+                            </label>
+                            <select class="form-select" name="document_type">
+                                <option value="">Select type...</option>
+                                <option value="invoice">Invoice</option>
+                                <option value="contract">Contract</option>
+                                <option value="receipt">Receipt</option>
+                                <option value="form">Form</option>
+                                <option value="id_document">ID Document</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="workflow_template" class="form-label">
+                                <i class="bi bi-gear me-1"></i>Workflow Template
+                            </label>
+                            <select class="form-select" name="workflow_template">
+                                <option value="">Manual processing</option>
+                                <option value="invoice_processing">Invoice Processing</option>
+                                <option value="hr_documents">HR Documents</option>
+                                <option value="archive_only">Archive Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">
+                            <i class="bi bi-chat-square-text me-1"></i>Notes (Optional)
+                        </label>
+                        <textarea class="form-control" name="notes" rows="3" 
+                                  placeholder="Additional notes about this scan..."></textarea>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" {% if not scanners %}disabled{% endif %}>
+                            <i class="bi bi-camera me-1"></i>Start Scanning
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <!-- Scanner Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-camera me-1"></i>Available Scanners</h6>
+            </div>
+            <div class="card-body">
+                {% if scanners %}
+                    {% for scanner in scanners %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center">
+                                <div class="status-indicator bg-{{ 'success' if scanner.status == 'online' else 'danger' }} me-2"></div>
+                                <div>
+                                    <div class="fw-bold">{{ scanner.name }}</div>
+                                    <small class="text-muted">{{ scanner.location }}</small>
+                                </div>
+                            </div>
+                            <span class="badge bg-{{ 'success' if scanner.status == 'online' else 'danger' }}">
+                                {{ scanner.status.title() }}
+                            </span>
+                        </div>
+                        {% if not loop.last %}<hr class="my-2">{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-camera text-muted display-6"></i>
+                        <p class="text-muted mt-2">No scanners available</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Scan History -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-clock-history me-1"></i>Recent Scans</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center py-3">
+                    <i class="bi bi-inbox text-muted display-6"></i>
+                    <p class="text-muted mt-2">No recent scans</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Scanning Tips -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-lightbulb me-1"></i>Scanning Tips</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="bi bi-check text-success me-1"></i>
+                        <small>Use 300 DPI for most documents</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check text-success me-1"></i>
+                        <small>Enable OCR for searchable PDFs</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check text-success me-1"></i>
+                        <small>Choose appropriate document type for auto-routing</small>
+                    </li>
+                    <li>
+                        <i class="bi bi-check text-success me-1"></i>
+                        <small>Ensure documents are properly aligned</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateDestination() {
+    const select = document.querySelector('select[name="destination_type"]');
+    const details = document.getElementById('destination_details');
+    const input = document.querySelector('input[name="destination_address"]');
+    
+    if (select.value === 'download') {
+        details.style.display = 'none';
+    } else {
+        details.style.display = 'block';
+        
+        // Update placeholder based on destination type
+        switch (select.value) {
+            case 'email':
+                input.placeholder = 'Enter email address (e.g., user@company.com)';
+                break;
+            case 'folder':
+                input.placeholder = 'Enter network path (e.g., \\\\server\\scans\\)';
+                break;
+            case 'cloud':
+                input.placeholder = 'Enter cloud path (e.g., /documents/scans/)';
+                break;
+        }
+    }
+}
+
+// Scanner preview
+document.querySelector('select[name="scanner_id"]').addEventListener('change', function() {
+    const option = this.options[this.selectedIndex];
+    if (option.value) {
+        const location = option.dataset.location;
+        const status = option.dataset.status;
+        
+        // You could show a preview or additional info here
+        console.log(`Selected scanner at ${location} with status ${status}`);
+    }
+});
+
+// Real-time preview (simulation)
+function showScanPreview() {
+    // This would normally show a live preview from the scanner
+    const modal = new bootstrap.Modal(document.getElementById('scanPreviewModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

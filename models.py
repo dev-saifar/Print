@@ -66,6 +66,7 @@ class PrintJob(db.Model):
     completed_at = db.Column(db.DateTime)
     
     # Metadata
+    printer_id = db.Column(db.Integer, db.ForeignKey('printer.id'))
     printer_name = db.Column(db.String(100), default='Default Printer')
     department_id = db.Column(db.Integer, db.ForeignKey('department.id'))
     notes = db.Column(db.Text)
@@ -98,3 +99,57 @@ class SystemSettings(db.Model):
     description = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Printer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    model = db.Column(db.String(100))
+    location = db.Column(db.String(200))
+    ip_address = db.Column(db.String(45))
+    port = db.Column(db.Integer, default=9100)
+    
+    # Printer capabilities
+    supports_color = db.Column(db.Boolean, default=True)
+    supports_duplex = db.Column(db.Boolean, default=True)
+    supports_scanning = db.Column(db.Boolean, default=False)
+    max_paper_size = db.Column(db.String(20), default='A4')
+    
+    # Status and monitoring
+    status = db.Column(db.String(20), default='offline')
+    toner_level = db.Column(db.Integer, default=100)
+    paper_level = db.Column(db.Integer, default=100)
+    total_pages_printed = db.Column(db.Integer, default=0)
+    
+    # Settings
+    is_active = db.Column(db.Boolean, default=True)
+    is_default = db.Column(db.Boolean, default=False)
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'))
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_seen = db.Column(db.DateTime)
+
+class PrintPolicy(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text)
+    
+    # Policy rules
+    force_duplex_over_pages = db.Column(db.Integer, default=0)
+    force_bw_over_pages = db.Column(db.Integer, default=0)
+    max_pages_per_job = db.Column(db.Integer, default=0)
+    max_copies = db.Column(db.Integer, default=10)
+    
+    # Cost multipliers
+    color_cost_multiplier = db.Column(db.Float, default=1.0)
+    bw_cost_multiplier = db.Column(db.Float, default=1.0)
+    
+    # Time restrictions
+    allowed_start_time = db.Column(db.Time)
+    allowed_end_time = db.Column(db.Time)
+    
+    # Department/user restrictions
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'))
+    user_role = db.Column(db.String(20))
+    
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

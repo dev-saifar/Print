@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}Mobile Print App - Print Manager{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-4">
+            <!-- Mobile App Simulation -->
+            <div class="card border-0 shadow-lg" style="border-radius: 25px; max-width: 350px; margin: 0 auto;">
+                <!-- App Header -->
+                <div class="card-header bg-primary text-white text-center" style="border-radius: 25px 25px 0 0;">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="status-bar text-start">
+                            <small>9:41 AM</small>
+                        </div>
+                        <h6 class="mb-0">Print Manager</h6>
+                        <div class="status-bar text-end">
+                            <small>100% <i class="bi bi-battery-full"></i></small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- App Content -->
+                <div class="card-body p-4">
+                    <!-- User Info -->
+                    <div class="text-center mb-4">
+                        {% if current_user.is_authenticated %}
+                            <div class="d-flex align-items-center justify-content-center mb-3">
+                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" 
+                                     style="width: 60px; height: 60px; font-size: 24px;">
+                                    {{ current_user.username[0].upper() }}
+                                </div>
+                            </div>
+                            <h6 class="mb-1">{{ current_user.username }}</h6>
+                            <small class="text-muted">Balance: ${{ "%.2f"|format(current_user.balance) }}</small>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <small>Please log in to use the mobile app</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Quick Actions -->
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <button class="btn btn-primary w-100 py-3" onclick="openMobilePrint()">
+                                <i class="bi bi-printer d-block mb-1" style="font-size: 24px;"></i>
+                                <small>Print</small>
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-info w-100 py-3" onclick="openMobileScan()">
+                                <i class="bi bi-camera d-block mb-1" style="font-size: 24px;"></i>
+                                <small>Scan</small>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-2 mb-4">
+                        <div class="col-6">
+                            <button class="btn btn-success w-100 py-3" onclick="openMobileJobs()">
+                                <i class="bi bi-list-task d-block mb-1" style="font-size: 24px;"></i>
+                                <small>My Jobs</small>
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-warning w-100 py-3" onclick="findPrinters()">
+                                <i class="bi bi-geo-alt d-block mb-1" style="font-size: 24px;"></i>
+                                <small>Find Printer</small>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Nearby Printers -->
+                    <div class="mb-4">
+                        <h6 class="mb-3"><i class="bi bi-geo me-1"></i>Nearby Printers</h6>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                <div class="d-flex align-items-center">
+                                    <div class="status-indicator bg-success me-2"></div>
+                                    <div>
+                                        <div class="fw-bold small">HP LaserJet Pro 1</div>
+                                        <small class="text-muted">Office Floor 1 • 15m away</small>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary">Print</button>
+                            </div>
+                            
+                            <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                <div class="d-flex align-items-center">
+                                    <div class="status-indicator bg-success me-2"></div>
+                                    <div>
+                                        <div class="fw-bold small">Canon ImageRunner 2</div>
+                                        <small class="text-muted">Office Floor 2 • 32m away</small>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary">Print</button>
+                            </div>
+                            
+                            <div class="list-group-item d-flex justify-content-between align-items-center border-0 px-0">
+                                <div class="d-flex align-items-center">
+                                    <div class="status-indicator bg-danger me-2"></div>
+                                    <div>
+                                        <div class="fw-bold small">Xerox WorkCentre 3</div>
+                                        <small class="text-muted">Office Floor 3 • Offline</small>
+                                    </div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-secondary" disabled>Offline</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Activity -->
+                    <div class="mb-4">
+                        <h6 class="mb-3"><i class="bi bi-clock-history me-1"></i>Recent Activity</h6>
+                        {% if current_user.is_authenticated %}
+                            <div class="small">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Document_2025.pdf</span>
+                                    <span class="text-success">Completed</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Presentation.pptx</span>
+                                    <span class="text-warning">Printing</span>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Invoice_001.pdf</span>
+                                    <span class="text-info">Pending</span>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="text-center text-muted">
+                                <small>No recent activity</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- App Navigation -->
+                    <div class="d-flex justify-content-around pt-3 border-top">
+                        <button class="btn btn-link text-primary p-0">
+                            <i class="bi bi-house" style="font-size: 20px;"></i>
+                        </button>
+                        <button class="btn btn-link text-muted p-0">
+                            <i class="bi bi-search" style="font-size: 20px;"></i>
+                        </button>
+                        <button class="btn btn-link text-muted p-0">
+                            <i class="bi bi-plus-circle" style="font-size: 20px;"></i>
+                        </button>
+                        <button class="btn btn-link text-muted p-0">
+                            <i class="bi bi-bell" style="font-size: 20px;"></i>
+                        </button>
+                        <button class="btn btn-link text-muted p-0">
+                            <i class="bi bi-person" style="font-size: 20px;"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Desktop Features Info -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-phone me-2"></i>Mobile Print App Features
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-cloud-upload text-primary me-2"></i>Mobile Printing</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-check text-success me-1"></i>Print from camera roll</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Cloud document access</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Email attachments</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Secure pull printing</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-camera text-info me-2"></i>Mobile Scanning</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-check text-success me-1"></i>Document scanning with OCR</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Multi-page document capture</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Auto-crop and enhance</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Cloud storage integration</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-geo-alt text-warning me-2"></i>Location Services</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-check text-success me-1"></i>Find nearby printers</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Real-time printer status</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Indoor navigation</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Printer availability alerts</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-bell text-success me-2"></i>Smart Notifications</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-check text-success me-1"></i>Job completion alerts</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Low balance warnings</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Printer error notifications</li>
+                                <li><i class="bi bi-check text-success me-1"></i>Monthly usage reports</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- QR Code for App Download -->
+                    <div class="text-center mt-4 p-4 bg-light rounded">
+                        <h6>Download Mobile App</h6>
+                        <div class="d-inline-block p-3 bg-white border rounded">
+                            <!-- QR Code placeholder -->
+                            <div style="width: 120px; height: 120px; background: 
+                                        repeating-conic-gradient(from 0deg, #000 0deg 90deg, #fff 90deg 180deg);">
+                            </div>
+                        </div>
+                        <p class="text-muted mt-2 mb-0">Scan QR code to download the app</p>
+                        <div class="mt-3">
+                            <a href="#" class="btn btn-dark me-2">
+                                <i class="bi bi-apple me-1"></i>App Store
+                            </a>
+                            <a href="#" class="btn btn-success">
+                                <i class="bi bi-google-play me-1"></i>Google Play
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openMobilePrint() {
+    // Simulate mobile print interface
+    showToast('Opening mobile print interface...', 'info');
+    
+    // In a real app, this would open the print dialog
+    setTimeout(() => {
+        if (confirm('Select document to print?')) {
+            window.location.href = '{{ url_for("upload") }}';
+        }
+    }, 1000);
+}
+
+function openMobileScan() {
+    showToast('Opening camera for scanning...', 'info');
+    
+    // In a real app, this would open the camera
+    setTimeout(() => {
+        if (confirm('Start scanning document?')) {
+            window.location.href = '{{ url_for("scan_documents") }}';
+        }
+    }, 1000);
+}
+
+function openMobileJobs() {
+    showToast('Loading your print jobs...', 'info');
+    setTimeout(() => {
+        window.location.href = '{{ url_for("jobs") }}';
+    }, 500);
+}
+
+function findPrinters() {
+    showToast('Searching for nearby printers...', 'info');
+    
+    // Simulate GPS and printer discovery
+    setTimeout(() => {
+        showToast('Found 2 printers nearby!', 'success');
+    }, 2000);
+}
+
+// Simulate push notifications
+function simulatePushNotification() {
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("Print Manager", {
+            body: "Your print job 'Document.pdf' is ready for pickup!",
+            icon: "/static/favicon.ico"
+        });
+    }
+}
+
+// Request notification permission on page load
+document.addEventListener('DOMContentLoaded', function() {
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+    }
+    
+    // Simulate a notification after 10 seconds
+    setTimeout(simulatePushNotification, 10000);
+});
+</script>
+
+<style>
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.card {
+    transition: transform 0.2s ease-in-out;
+}
+
+.btn:active {
+    transform: scale(0.95);
+}
+
+/* Mobile app specific styles */
+.card-header .status-bar {
+    font-size: 12px;
+    width: 60px;
+}
+
+.list-group-item {
+    padding: 0.75rem 0;
+}
+
+@media (max-width: 768px) {
+    .container-fluid {
+        padding: 0;
+    }
+    
+    .col-md-4 {
+        max-width: 100%;
+        padding: 1rem;
+    }
+    
+    .col-md-8 {
+        display: none; /* Hide desktop info on mobile */
+    }
+}
+</style>
+{% endblock %}

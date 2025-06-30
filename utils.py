@@ -44,7 +44,8 @@ def get_file_pages(filepath):
 def process_print_job(job_id):
     """Simulate print job processing"""
     try:
-        with db.app.app_context():
+        from app import app
+        with app.app_context():
             job = PrintJob.query.get(job_id)
             if not job or job.status != 'pending':
                 return
@@ -82,12 +83,16 @@ def process_print_job(job_id):
             
     except Exception as e:
         logging.error(f"Error processing print job {job_id}: {e}")
-        with db.app.app_context():
-            job = PrintJob.query.get(job_id)
-            if job:
-                job.status = 'failed'
-                job.notes = f'Processing error: {str(e)}'
-                db.session.commit()
+        try:
+            from app import app
+            with app.app_context():
+                job = PrintJob.query.get(job_id)
+                if job:
+                    job.status = 'failed'
+                    job.notes = f'Processing error: {str(e)}'
+                    db.session.commit()
+        except:
+            pass
 
 def calculate_environmental_impact(pages):
     """Calculate environmental impact of printing"""

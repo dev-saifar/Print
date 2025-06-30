@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Edit User - Print Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-person-gear me-2"></i>Edit User: {{ user.username }}
+                </h5>
+                <a href="{{ url_for('admin_users') }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Users
+                </a>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" value="{{ user.username }}" disabled>
+                                <div class="form-text">Username cannot be changed</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" value="{{ user.email }}" disabled>
+                                <div class="form-text">Email cannot be changed</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="balance" class="form-label">Account Balance</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" class="form-control" name="balance" 
+                                           value="{{ user.balance }}" step="0.01" min="0">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quota_limit" class="form-label">Monthly Quota (pages)</label>
+                                <input type="number" class="form-control" name="quota_limit" 
+                                       value="{{ user.quota_limit }}" min="0">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="role" class="form-label">Role</label>
+                                <select class="form-select" name="role">
+                                    <option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
+                                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="department_id" class="form-label">Department</label>
+                                <select class="form-select" name="department_id">
+                                    <option value="">No Department</option>
+                                    <!-- Department options will be populated by backend -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="is_active" 
+                                   {% if user.is_active %}checked{% endif %}>
+                            <label class="form-check-label">
+                                Account Active
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <!-- User Statistics -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6>Account Statistics</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>Created:</strong> {{ user.created_at.strftime('%B %d, %Y') }}</li>
+                                <li><strong>Total Jobs:</strong> {{ user.print_jobs|length }}</li>
+                                <li><strong>Monthly Usage:</strong> {{ user.get_monthly_usage() }} pages</li>
+                                <li><strong>Quota Used:</strong> {{ user.quota_used }} pages</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Quick Actions</h6>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-outline-info btn-sm" 
+                                        onclick="addBalance(10)">Add $10 Balance</button>
+                                <button type="button" class="btn btn-outline-warning btn-sm" 
+                                        onclick="resetQuota()">Reset Monthly Quota</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm" 
+                                        onclick="resetPassword()">Reset Password</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('admin_users') }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function addBalance(amount) {
+    const balanceInput = document.querySelector('input[name="balance"]');
+    const currentBalance = parseFloat(balanceInput.value) || 0;
+    balanceInput.value = (currentBalance + amount).toFixed(2);
+}
+
+function resetQuota() {
+    if (confirm('Reset monthly quota usage to 0?')) {
+        fetch(`/admin/user/{{ user.id }}/reset-quota`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Quota reset successfully');
+                location.reload();
+            } else {
+                alert('Error resetting quota');
+            }
+        });
+    }
+}
+
+function resetPassword() {
+    if (confirm('Generate a new temporary password for this user?')) {
+        fetch(`/admin/user/{{ user.id }}/reset-password`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`New temporary password: ${data.password}\nPlease share this with the user securely.`);
+            } else {
+                alert('Error resetting password');
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

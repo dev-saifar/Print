@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Print Policies - Print Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-shield-check me-2"></i>Print Policies</h2>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Admin
+        </a>
+        <a href="{{ url_for('admin_add_policy') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Add Policy
+        </a>
+    </div>
+</div>
+
+<!-- Policy Overview -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-shield-check text-primary display-6"></i>
+                <h4 class="mt-2">{{ policies|length }}</h4>
+                <p class="text-muted">Total Policies</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle text-success display-6"></i>
+                <h4 class="mt-2">{{ (policies | selectattr('is_active', 'equalto', true) | list | length) }}</h4>
+                <p class="text-muted">Active</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-people text-info display-6"></i>
+                <h4 class="mt-2">{{ (policies | selectattr('user_role', 'equalto', 'user') | list | length) }}</h4>
+                <p class="text-muted">User Policies</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-building text-warning display-6"></i>
+                <h4 class="mt-2">{{ (policies | selectattr('department_id', 'ne', none) | list | length) }}</h4>
+                <p class="text-muted">Department Specific</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Policies List -->
+<div class="card">
+    <div class="card-body">
+        {% if policies %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Policy Name</th>
+                            <th>Scope</th>
+                            <th>Rules</th>
+                            <th>Cost Multipliers</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for policy in policies %}
+                        <tr>
+                            <td>
+                                <div class="fw-bold">{{ policy.name }}</div>
+                                {% if policy.description %}
+                                    <small class="text-muted">{{ policy.description[:50] }}{% if policy.description|length > 50 %}...{% endif %}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if policy.user_role %}
+                                    <span class="badge bg-info">{{ policy.user_role.title() }}s</span>
+                                {% endif %}
+                                {% if policy.department %}
+                                    <span class="badge bg-secondary">{{ policy.department.name }}</span>
+                                {% endif %}
+                                {% if not policy.user_role and not policy.department %}
+                                    <span class="badge bg-primary">All Users</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="small">
+                                    {% if policy.force_duplex_over_pages > 0 %}
+                                        <div><i class="bi bi-arrow-left-right me-1"></i>Force duplex: >{{ policy.force_duplex_over_pages }} pages</div>
+                                    {% endif %}
+                                    {% if policy.force_bw_over_pages > 0 %}
+                                        <div><i class="bi bi-palette me-1"></i>Force B&W: >{{ policy.force_bw_over_pages }} pages</div>
+                                    {% endif %}
+                                    {% if policy.max_pages_per_job > 0 %}
+                                        <div><i class="bi bi-file-earmark me-1"></i>Max pages: {{ policy.max_pages_per_job }}</div>
+                                    {% endif %}
+                                    {% if policy.max_copies > 1 %}
+                                        <div><i class="bi bi-stack me-1"></i>Max copies: {{ policy.max_copies }}</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if policy.color_cost_multiplier != 1.0 or policy.bw_cost_multiplier != 1.0 %}
+                                    <div class="small">
+                                        {% if policy.color_cost_multiplier != 1.0 %}
+                                            <div>Color: {{ "%.1f"|format(policy.color_cost_multiplier) }}x</div>
+                                        {% endif %}
+                                        {% if policy.bw_cost_multiplier != 1.0 %}
+                                            <div>B&W: {{ "%.1f"|format(policy.bw_cost_multiplier) }}x</div>
+                                        {% endif %}
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">Default</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if policy.is_active else 'secondary' }}">
+                                    {{ 'Active' if policy.is_active else 'Inactive' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-sm btn-outline-primary" 
+                                            onclick="editPolicy({{ policy.id }})">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-{{ 'warning' if policy.is_active else 'success' }}" 
+                                            onclick="togglePolicy({{ policy.id }}, {{ policy.is_active|lower }})">
+                                        <i class="bi bi-{{ 'pause' if policy.is_active else 'play' }}"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            onclick="deletePolicy({{ policy.id }}, '{{ policy.name }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-shield-check text-muted display-4"></i>
+                <h4 class="mt-3">No print policies configured</h4>
+                <p class="text-muted">Create policies to control printing behavior and costs</p>
+                <a href="{{ url_for('admin_add_policy') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Add Policy
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Policy Examples -->
+<div class="card mt-4">
+    <div class="card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-lightbulb me-1"></i>Policy Examples</h6>
+    </div>
+    <div class="card-body">
+        <div class="row g-4">
+            <div class="col-md-4">
+                <h6 class="text-primary">Cost Control</h6>
+                <ul class="list-unstyled small">
+                    <li><i class="bi bi-check text-success me-1"></i>Force B&W for documents >10 pages</li>
+                    <li><i class="bi bi-check text-success me-1"></i>Limit copies to 5 per job</li>
+                    <li><i class="bi bi-check text-success me-1"></i>Increase color costs by 20% for users</li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-info">Environmental</h6>
+                <ul class="list-unstyled small">
+                    <li><i class="bi bi-check text-success me-1"></i>Force duplex for documents >5 pages</li>
+                    <li><i class="bi bi-check text-success me-1"></i>Limit pages per job to 50</li>
+                    <li><i class="bi bi-check text-success me-1"></i>Apply green printing surcharge</li>
+                </ul>
+            </div>
+            <div class="col-md-4">
+                <h6 class="text-warning">Department Rules</h6>
+                <ul class="list-unstyled small">
+                    <li><i class="bi bi-check text-success me-1"></i>Marketing: Higher color budget</li>
+                    <li><i class="bi bi-check text-success me-1"></i>Accounting: B&W only restriction</li>
+                    <li><i class="bi bi-check text-success me-1"></i>Legal: No copy limits</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function editPolicy(policyId) {
+    // Redirect to edit page
+    window.location.href = `/admin/policy/${policyId}/edit`;
+}
+
+function togglePolicy(policyId, isActive) {
+    const action = isActive ? 'deactivate' : 'activate';
+    if (confirm(`Are you sure you want to ${action} this policy?`)) {
+        fetch(`/admin/policy/${policyId}/toggle`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error updating policy status');
+            }
+        });
+    }
+}
+
+function deletePolicy(policyId, policyName) {
+    if (confirm(`Are you sure you want to delete policy "${policyName}"?`)) {
+        fetch(`/admin/policy/${policyId}/delete`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Error deleting policy');
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

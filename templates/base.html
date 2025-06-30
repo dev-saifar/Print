@@ -48,15 +48,43 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('scan_documents') }}">
+                                <i class="bi bi-camera me-1"></i>Scan
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('reports') }}">
                                 <i class="bi bi-graph-up me-1"></i>Reports
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('mobile_app') }}">
+                                <i class="bi bi-phone me-1"></i>Mobile
+                            </a>
+                        </li>
                         {% if current_user.role == 'admin' %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{{ url_for('admin') }}">
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
                                     <i class="bi bi-gear me-1"></i>Admin
                                 </a>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{{ url_for('admin') }}">
+                                        <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('admin_users') }}">
+                                        <i class="bi bi-people me-1"></i>Users
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('admin_printers') }}">
+                                        <i class="bi bi-printer me-1"></i>Printers
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('admin_policies') }}">
+                                        <i class="bi bi-shield-check me-1"></i>Print Policies
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{{ url_for('admin_email_to_print') }}">
+                                        <i class="bi bi-envelope me-1"></i>Email-to-Print
+                                    </a></li>
+                                </ul>
                             </li>
                         {% endif %}
                     {% endif %}

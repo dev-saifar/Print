@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Printer Management - Print Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-printer me-2"></i>Printer Management</h2>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Admin
+        </a>
+        <a href="{{ url_for('admin_add_printer') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Add Printer
+        </a>
+    </div>
+</div>
+
+<!-- Printer Status Overview -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-printer text-success display-6"></i>
+                <h4 class="mt-2">{{ printers.total }}</h4>
+                <p class="text-muted">Total Printers</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-check-circle text-success display-6"></i>
+                <h4 class="mt-2">{{ (printers.items | selectattr('status', 'equalto', 'online') | list | length) }}</h4>
+                <p class="text-muted">Online</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-exclamation-triangle text-warning display-6"></i>
+                <h4 class="mt-2">{{ (printers.items | selectattr('status', 'equalto', 'offline') | list | length) }}</h4>
+                <p class="text-muted">Offline</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <i class="bi bi-camera text-info display-6"></i>
+                <h4 class="mt-2">{{ (printers.items | selectattr('supports_scanning', 'equalto', true) | list | length) }}</h4>
+                <p class="text-muted">With Scanning</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Printers List -->
+<div class="card">
+    <div class="card-body">
+        {% if printers.items %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Printer</th>
+                            <th>Status</th>
+                            <th>Location</th>
+                            <th>Capabilities</th>
+                            <th>Levels</th>
+                            <th>Usage</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for printer in printers.items %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="status-indicator bg-{{ 'success' if printer.status == 'online' else 'danger' if printer.status == 'offline' else 'warning' }} me-2"></div>
+                                    <div>
+                                        <div class="fw-bold">
+                                            {{ printer.name }}
+                                            {% if printer.is_default %}
+                                                <span class="badge bg-primary ms-1">Default</span>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted">{{ printer.model }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ 'success' if printer.status == 'online' else 'danger' if printer.status == 'offline' else 'warning' }}">
+                                    {{ printer.status.title() }}
+                                </span>
+                                {% if printer.last_seen %}
+                                    <br><small class="text-muted">Last seen: {{ printer.last_seen.strftime('%b %d, %H:%M') }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div>{{ printer.location or 'Not specified' }}</div>
+                                {% if printer.ip_address %}
+                                    <small class="text-muted">{{ printer.ip_address }}:{{ printer.port }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="small">
+                                    {% if printer.supports_color %}
+                                        <span class="badge bg-info me-1">Color</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary me-1">B&W</span>
+                                    {% endif %}
+                                    {% if printer.supports_duplex %}
+                                        <span class="badge bg-success me-1">Duplex</span>
+                                    {% endif %}
+                                    {% if printer.supports_scanning %}
+                                        <span class="badge bg-primary me-1">Scan</span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">Max: {{ printer.max_paper_size }}</small>
+                            </td>
+                            <td>
+                                <div class="mb-1">
+                                    <small>Toner: {{ printer.toner_level }}%</small>
+                                    <div class="progress" style="height: 4px;">
+                                        <div class="progress-bar bg-{{ 'success' if printer.toner_level > 50 else 'warning' if printer.toner_level > 20 else 'danger' }}" 
+                                             style="width: {{ printer.toner_level }}%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <small>Paper: {{ printer.paper_level }}%</small>
+                                    <div class="progress" style="height: 4px;">
+                                        <div class="progress-bar bg-{{ 'success' if printer.paper_level > 50 else 'warning' if printer.paper_level > 20 else 'danger' }}" 
+                                             style="width: {{ printer.paper_level }}%"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="fw-bold">{{ "{:,}".format(printer.total_pages_printed) }}</div>
+                                <small class="text-muted">pages printed</small>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <a href="{{ url_for('admin_edit_printer', printer_id=printer.id) }}" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-warning" 
+                                            onclick="testPrinter({{ printer.id }})">
+                                        <i class="bi bi-printer"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" 
+                                            onclick="deletePrinter({{ printer.id }}, '{{ printer.name }}')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if printers.pages > 1 %}
+                <nav class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if printers.has_prev %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_printers', page=printers.prev_num) }}">Previous</a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for page_num in printers.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != printers.page %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="{{ url_for('admin_printers', page=page_num) }}">{{ page_num }}</a>
+                                    </li>
+                                {% else %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ page_num }}</span>
+                                    </li>
+                                {% endif %}
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">...</span>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if printers.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="{{ url_for('admin_printers', page=printers.next_num) }}">Next</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="bi bi-printer text-muted display-4"></i>
+                <h4 class="mt-3">No printers configured</h4>
+                <p class="text-muted">Add your first printer to get started</p>
+                <a href="{{ url_for('admin_add_printer') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Add Printer
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function testPrinter(printerId) {
+    if (confirm('Send a test page to this printer?')) {
+        fetch(`/admin/printer/${printerId}/test`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Test page sent successfully!');
+            } else {
+                alert('Error sending test page: ' + data.error);
+            }
+        });
+    }
+}
+
+function deletePrinter(printerId, printerName) {
+    if (confirm(`Are you sure you want to delete printer "${printerName}"?`)) {
+        fetch(`/admin/printer/${printerId}/delete`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Error deleting printer');
+            }
+        });
+    }
+}
+</script>
+{% endblock %}

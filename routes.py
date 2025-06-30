@@ -10,7 +10,7 @@ import PyPDF2
 import io
 
 from app import app, db, scheduler
-from models import User, PrintJob, Department, SystemSettings
+from models import User, PrintJob, Department, SystemSettings, Printer, PrintPolicy
 from utils import allowed_file, get_file_pages, process_print_job
 
 @app.route('/')
@@ -375,3 +375,285 @@ def chart_data():
             'pages': stat.pages or 0
         } for stat in color_stats]
     })
+
+# Printer Management Routes
+@app.route('/admin/printers')
+@login_required
+def admin_printers():
+    if current_user.role != 'admin':
+        abort(403)
+    
+    page = request.args.get('page', 1, type=int)
+    printers = Printer.query.order_by(Printer.name).paginate(
+        page=page, per_page=20, error_out=False
+    )
+    
+    return render_template('admin_printers.html', printers=printers)
+
+@app.route('/admin/printer/add', methods=['GET', 'POST'])
+@login_required
+def admin_add_printer():
+    if current_user.role != 'admin':
+        abort(403)
+    
+    if request.method == 'POST':
+        printer = Printer(
+            name=request.form['name'],
+            model=request.form.get('model', ''),
+            location=request.form.get('location', ''),
+            ip_address=request.form.get('ip_address', ''),
+            port=int(request.form.get('port', 9100)),
+            supports_color='supports_color' in request.form,
+            supports_duplex='supports_duplex' in request.form,
+            supports_scanning='supports_scanning' in request.form,
+            max_paper_size=request.form.get('max_paper_size', 'A4'),
+            status=request.form.get('status', 'offline'),
+            toner_level=int(request.form.get('toner_level', 100)),
+            paper_level=int(request.form.get('paper_level', 100)),
+            is_default='is_default' in request.form,
+            is_active='is_active' in request.form
+        )
+        
+        # Ensure only one default printer
+        if printer.is_default:
+            Printer.query.filter_by(is_default=True).update({'is_default': False})
+        
+        db.session.add(printer)
+        db.session.commit()
+        
+        flash(f'Printer {printer.name} added successfully!', 'success')
+        return redirect(url_for('admin_printers'))
+    
+    return render_template('admin_add_printer.html')
+
+@app.route('/admin/printer/<int:printer_id>/edit', methods=['GET', 'POST'])
+@login_required
+def admin_edit_printer(printer_id):
+    if current_user.role != 'admin':
+        abort(403)
+    
+    printer = Printer.query.get_or_404(printer_id)
+    
+    if request.method == 'POST':
+        printer.name = request.form['name']
+        printer.model = request.form.get('model', '')
+        printer.location = request.form.get('location', '')
+        printer.ip_address = request.form.get('ip_address', '')
+        printer.port = int(request.form.get('port', 9100))
+        printer.supports_color = 'supports_color' in request.form
+        printer.supports_duplex = 'supports_duplex' in request.form
+        printer.supports_scanning = 'supports_scanning' in request.form
+        printer.max_paper_size = request.form.get('max_paper_size', 'A4')
+        printer.status = request.form.get('status', 'offline')
+        printer.toner_level = int(request.form.get('toner_level', 100))
+        printer.paper_level = int(request.form.get('paper_level', 100))
+        printer.is_active = 'is_active' in request.form
+        
+        # Handle default printer
+        if 'is_default' in request.form and not printer.is_default:
+            Printer.query.filter_by(is_default=True).update({'is_default': False})
+            printer.is_default = True
+        elif 'is_default' not in request.form:
+            printer.is_default = False
+        
+        db.session.commit()
+        flash(f'Printer {printer.name} updated successfully!', 'success')
+        return redirect(url_for('admin_printers'))
+    
+    return render_template('admin_edit_printer.html', printer=printer)
+
+@app.route('/admin/printer/<int:printer_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_printer(printer_id):
+    if current_user.role != 'admin':
+        abort(403)
+    
+    printer = Printer.query.get_or_404(printer_id)
+    
+    # Check if printer has print jobs
+    if printer.print_jobs:
+        flash('Cannot delete printer with existing print jobs', 'error')
+        return redirect(url_for('admin_printers'))
+    
+    db.session.delete(printer)
+    db.session.commit()
+    
+    flash(f'Printer {printer.name} deleted successfully!', 'success')
+    return redirect(url_for('admin_printers'))
+
+# Print Policies Management
+@app.route('/admin/policies')
+@login_required
+def admin_policies():
+    if current_user.role != 'admin':
+        abort(403)
+    
+    policies = PrintPolicy.query.order_by(PrintPolicy.name).all()
+    return render_template('admin_policies.html', policies=policies)
+
+@app.route('/admin/policy/add', methods=['GET', 'POST'])
+@login_required
+def admin_add_policy():
+    if current_user.role != 'admin':
+        abort(403)
+    
+    if request.method == 'POST':
+        policy = PrintPolicy(
+            name=request.form['name'],
+            description=request.form.get('description', ''),
+            force_duplex_over_pages=int(request.form.get('force_duplex_over_pages', 0)),
+            force_bw_over_pages=int(request.form.get('force_bw_over_pages', 0)),
+            max_pages_per_job=int(request.form.get('max_pages_per_job', 0)),
+            max_copies=int(request.form.get('max_copies', 10)),
+            color_cost_multiplier=float(request.form.get('color_cost_multiplier', 1.0)),
+            bw_cost_multiplier=float(request.form.get('bw_cost_multiplier', 1.0)),
+            user_role=request.form.get('user_role') if request.form.get('user_role') else None,
+            is_active='is_active' in request.form
+        )
+        
+        db.session.add(policy)
+        db.session.commit()
+        
+        flash(f'Print policy {policy.name} created successfully!', 'success')
+        return redirect(url_for('admin_policies'))
+    
+    return render_template('admin_add_policy.html')
+
+# Scanning Routes
+@app.route('/scan')
+@login_required
+def scan_documents():
+    # Get available scanners (printers with scanning capability)
+    scanners = Printer.query.filter_by(supports_scanning=True, is_active=True).all()
+    return render_template('scan.html', scanners=scanners)
+
+@app.route('/scan/start', methods=['POST'])
+@login_required
+def start_scan():
+    scanner_id = request.form.get('scanner_id')
+    scanner = Printer.query.get_or_404(scanner_id)
+    
+    if not scanner.supports_scanning:
+        flash('Selected device does not support scanning', 'error')
+        return redirect(url_for('scan_documents'))
+    
+    # Simulate scan job creation
+    scan_settings = {
+        'resolution': request.form.get('resolution', 300),
+        'color_mode': request.form.get('color_mode', 'color'),
+        'output_format': request.form.get('output_format', 'pdf'),
+        'ocr_enabled': 'ocr_enabled' in request.form,
+        'destination_type': request.form.get('destination_type', 'download'),
+        'document_type': request.form.get('document_type', ''),
+        'notes': request.form.get('notes', '')
+    }
+    
+    # For demo purposes, simulate successful scan
+    flash('Scan job started successfully! Document will be processed shortly.', 'success')
+    return redirect(url_for('scan_documents'))
+
+# Mobile App Simulation Routes
+@app.route('/mobile')
+def mobile_app():
+    """Mobile app interface simulation"""
+    return render_template('mobile_app.html')
+
+@app.route('/mobile/print', methods=['POST'])
+def mobile_print():
+    """Handle mobile print requests"""
+    # Simulate mobile print job
+    device_info = request.headers.get('User-Agent', 'Unknown Device')
+    
+    # For demo purposes
+    flash('Print job sent from mobile device successfully!', 'success')
+    return jsonify({'status': 'success', 'message': 'Print job queued'})
+
+# Email-to-Print Simulation
+@app.route('/admin/email-to-print')
+@login_required
+def admin_email_to_print():
+    if current_user.role != 'admin':
+        abort(403)
+    
+    return render_template('admin_email_to_print.html')
+
+# User management helper routes
+@app.route('/admin/user/add', methods=['POST'])
+@login_required
+def admin_add_user():
+    if current_user.role != 'admin':
+        abort(403)
+    
+    username = request.form['username']
+    email = request.form['email']
+    password = request.form['password']
+    role = request.form['role']
+    balance = float(request.form.get('balance', 10.0))
+    quota_limit = int(request.form.get('quota_limit', 500))
+    
+    # Check if user exists
+    if User.query.filter_by(username=username).first():
+        flash('Username already exists', 'error')
+        return redirect(url_for('admin_users'))
+    
+    if User.query.filter_by(email=email).first():
+        flash('Email already registered', 'error')
+        return redirect(url_for('admin_users'))
+    
+    user = User(
+        username=username,
+        email=email,
+        password_hash=generate_password_hash(password),
+        role=role,
+        balance=balance,
+        quota_limit=quota_limit
+    )
+    
+    db.session.add(user)
+    db.session.commit()
+    
+    flash(f'User {username} created successfully!', 'success')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/toggle-status', methods=['POST'])
+@login_required
+def admin_toggle_user_status(user_id):
+    if current_user.role != 'admin':
+        abort(403)
+    
+    user = User.query.get_or_404(user_id)
+    user.is_active = not user.is_active
+    db.session.commit()
+    
+    status = 'activated' if user.is_active else 'deactivated'
+    return jsonify({'success': True, 'message': f'User {status} successfully'})
+
+@app.route('/admin/user/<int:user_id>/reset-quota', methods=['POST'])
+@login_required
+def admin_reset_user_quota(user_id):
+    if current_user.role != 'admin':
+        abort(403)
+    
+    user = User.query.get_or_404(user_id)
+    user.quota_used = 0
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Quota reset successfully'})
+
+@app.route('/admin/user/<int:user_id>/reset-password', methods=['POST'])
+@login_required  
+def admin_reset_user_password(user_id):
+    if current_user.role != 'admin':
+        abort(403)
+    
+    user = User.query.get_or_404(user_id)
+    
+    # Generate temporary password
+    import string
+    import random
+    temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    
+    user.password_hash = generate_password_hash(temp_password)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'password': temp_password})
