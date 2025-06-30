@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Print Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-gear me-2"></i>Admin Dashboard</h2>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('admin_users') }}" class="btn btn-outline-primary">
+            <i class="bi bi-people me-1"></i>Manage Users
+        </a>
+    </div>
+</div>
+
+<!-- System Statistics -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-people text-primary display-6"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="card-subtitle text-muted">Total Users</h6>
+                        <h4 class="card-title mb-0">{{ total_users }}</h4>
+                        <small class="text-success">{{ active_users }} active</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-list-task text-info display-6"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="card-subtitle text-muted">Total Jobs</h6>
+                        <h4 class="card-title mb-0">{{ total_jobs }}</h4>
+                        <small class="text-warning">{{ pending_jobs }} pending</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-printer text-success display-6"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="card-subtitle text-muted">Printers</h6>
+                        <h4 class="card-title mb-0">3</h4>
+                        <small class="text-success">2 online</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-exclamation-triangle text-warning display-6"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="card-subtitle text-muted">Alerts</h6>
+                        <h4 class="card-title mb-0">2</h4>
+                        <small class="text-muted">Requires attention</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recent Print Jobs -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0"><i class="bi bi-clock-history me-1"></i>Recent Print Jobs</h6>
+                <a href="{{ url_for('jobs') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+            <div class="card-body">
+                {% if recent_jobs %}
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Document</th>
+                                    <th>Status</th>
+                                    <th>Cost</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for job in recent_jobs %}
+                                <tr>
+                                    <td>
+                                        <i class="bi bi-person me-1"></i>
+                                        {{ job.user.username }}
+                                    </td>
+                                    <td>
+                                        <div class="text-truncate" style="max-width: 200px;">
+                                            {{ job.original_filename }}
+                                        </div>
+                                        <small class="text-muted">{{ job.total_pages }} pages</small>
+                                    </td>
+                                    <td>
+                                        {% if job.status == 'completed' %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% elif job.status == 'printing' %}
+                                            <span class="badge bg-warning">Printing</span>
+                                        {% elif job.status == 'pending' %}
+                                            <span class="badge bg-info">Pending</span>
+                                        {% elif job.status == 'failed' %}
+                                            <span class="badge bg-danger">Failed</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ job.status.title() }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>${{ "%.2f"|format(job.total_cost) }}</td>
+                                    <td>{{ job.created_at.strftime('%b %d, %H:%M') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox text-muted display-6"></i>
+                        <p class="text-muted mt-2">No recent print jobs</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- System Status -->
+    <div class="col-md-4">
+        <!-- Printer Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-printer me-1"></i>Printer Status</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center">
+                        <div class="status-indicator bg-success me-2"></div>
+                        <span class="small">HP LaserJet Pro 1</span>
+                    </div>
+                    <span class="badge bg-success">85%</span>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center">
+                        <div class="status-indicator bg-success me-2"></div>
+                        <span class="small">Canon ImageRunner 2</span>
+                    </div>
+                    <span class="badge bg-warning">15%</span>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="status-indicator bg-danger me-2"></div>
+                        <span class="small">Xerox WorkCentre 3</span>
+                    </div>
+                    <span class="badge bg-danger">Offline</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Users -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-person-plus me-1"></i>Recent Users</h6>
+            </div>
+            <div class="card-body">
+                {% if recent_users %}
+                    {% for user in recent_users %}
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <div class="fw-bold">{{ user.username }}</div>
+                                <small class="text-muted">{{ user.email }}</small>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">{{ user.created_at.strftime('%b %d') }}</small>
+                                <br>
+                                <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">
+                                    {{ 'Active' if user.is_active else 'Inactive' }}
+                                </span>
+                            </div>
+                        </div>
+                        {% if not loop.last %}<hr class="my-2">{% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-3">
+                        <i class="bi bi-person text-muted display-6"></i>
+                        <p class="text-muted mt-2">No recent registrations</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Alerts -->
+<div class="row g-4 mt-2">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-exclamation-triangle me-1"></i>System Alerts</h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning d-flex align-items-center" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <div>
+                        <strong>Low Toner Alert:</strong> Canon ImageRunner 2 toner level is at 15%.
+                        <a href="#" class="alert-link">Order replacement</a>
+                    </div>
+                </div>
+                
+                <div class="alert alert-danger d-flex align-items-center" role="alert">
+                    <i class="bi bi-printer me-2"></i>
+                    <div>
+                        <strong>Printer Offline:</strong> Xerox WorkCentre 3 has been offline for 2 hours.
+                        <a href="#" class="alert-link">Check connection</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

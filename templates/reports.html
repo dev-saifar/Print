@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Print Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-graph-up me-2"></i>Usage Reports</h2>
+    <div class="d-flex gap-2">
+        <div class="btn-group" role="group">
+            <input type="radio" class="btn-check" name="timeRange" id="days7" value="7" {% if days == 7 %}checked{% endif %}>
+            <label class="btn btn-outline-secondary" for="days7">7 Days</label>
+            
+            <input type="radio" class="btn-check" name="timeRange" id="days30" value="30" {% if days == 30 %}checked{% endif %}>
+            <label class="btn btn-outline-secondary" for="days30">30 Days</label>
+            
+            <input type="radio" class="btn-check" name="timeRange" id="days90" value="90" {% if days == 90 %}checked{% endif %}>
+            <label class="btn btn-outline-secondary" for="days90">90 Days</label>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-list-task text-primary display-6"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="card-subtitle text-muted">Total Jobs</h6>
+                        <h4 class="card-title mb-0">{{ total_jobs }}</h4>
+                        <small class="text-success">{{ completed_jobs }} completed</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-file-earmark-text text-info display-6"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="card-subtitle text-muted">Pages Printed</h6>
+                        <h4 class="card-title mb-0">{{ "{:,}".format(total_pages) }}</h4>
+                        <small class="text-muted">Total pages</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-currency-dollar text-success display-6"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="card-subtitle text-muted">Total Cost</h6>
+                        <h4 class="card-title mb-0">${{ "%.2f"|format(total_cost) }}</h4>
+                        <small class="text-muted">Print expenses</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <i class="bi bi-leaf text-success display-6"></i>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="card-subtitle text-muted">CO₂ Impact</h6>
+                        <h4 class="card-title mb-0">{{ "%.1f"|format(total_pages * 4.6 / 1000) }}</h4>
+                        <small class="text-muted">kg CO₂</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row g-4 mb-4">
+    <!-- Daily Usage Chart -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-bar-chart me-1"></i>Daily Usage Trends</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="dailyUsageChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Color vs B&W Chart -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-pie-chart me-1"></i>Color vs B&W</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="colorChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Usage Statistics Table -->
+<div class="card">
+    <div class="card-header">
+        <h6 class="card-title mb-0"><i class="bi bi-table me-1"></i>Daily Statistics</h6>
+    </div>
+    <div class="card-body">
+        {% if daily_stats %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Print Jobs</th>
+                            <th>Pages</th>
+                            <th>Cost</th>
+                            <th>Avg Cost/Page</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in daily_stats %}
+                        <tr>
+                            <td>{{ stat.date.strftime('%B %d, %Y') }}</td>
+                            <td>{{ stat.jobs or 0 }}</td>
+                            <td>{{ "{:,}".format(stat.pages or 0) }}</td>
+                            <td>${{ "%.2f"|format(stat.cost or 0) }}</td>
+                            <td>
+                                {% if stat.pages and stat.pages > 0 %}
+                                    ${{ "%.3f"|format((stat.cost or 0) / stat.pages) }}
+                                {% else %}
+                                    $0.000
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-graph-up text-muted display-4"></i>
+                <h5 class="mt-3">No data available</h5>
+                <p class="text-muted">No print jobs found for the selected time period</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Time range selector
+document.querySelectorAll('input[name="timeRange"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        window.location.href = `{{ url_for('reports') }}?days=${this.value}`;
+    });
+});
+
+// Load chart data
+fetch(`{{ url_for('chart_data') }}?days={{ days }}`)
+    .then(response => response.json())
+    .then(data => {
+        // Daily Usage Chart
+        const dailyCtx = document.getElementById('dailyUsageChart').getContext('2d');
+        new Chart(dailyCtx, {
+            type: 'line',
+            data: {
+                labels: data.daily.map(d => new Date(d.date).toLocaleDateString()),
+                datasets: [
+                    {
+                        label: 'Print Jobs',
+                        data: data.daily.map(d => d.jobs),
+                        borderColor: 'rgb(54, 162, 235)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Pages',
+                        data: data.daily.map(d => d.pages),
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    x: {
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'Jobs'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Pages'
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                    }
+                }
+            }
+        });
+
+        // Color Chart
+        const colorCtx = document.getElementById('colorChart').getContext('2d');
+        const colorData = data.color_breakdown;
+        new Chart(colorCtx, {
+            type: 'doughnut',
+            data: {
+                labels: colorData.map(d => d.mode === 'bw' ? 'Black & White' : 'Color'),
+                datasets: [{
+                    data: colorData.map(d => d.pages),
+                    backgroundColor: [
+                        'rgba(54, 162, 235, 0.8)',
+                        'rgba(255, 99, 132, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgb(54, 162, 235)',
+                        'rgb(255, 99, 132)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    }
+                }
+            }
+        });
+    })
+    .catch(error => {
+        console.error('Error loading chart data:', error);
+    });
+</script>
+{% endblock %}

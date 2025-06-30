@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Print Document - Print Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0"><i class="bi bi-cloud-upload me-2"></i>Upload Document to Print</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <!-- File Upload -->
+                    <div class="mb-4">
+                        <label for="file" class="form-label">Select Document</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.gif,.txt" required>
+                        <div class="form-text">
+                            Supported formats: PDF, DOC, DOCX, PNG, JPG, GIF, TXT (Max 16MB)
+                        </div>
+                    </div>
+                    
+                    <!-- Print Settings -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="copies" class="form-label">
+                                <i class="bi bi-stack me-1"></i>Copies
+                            </label>
+                            <input type="number" class="form-control" id="copies" name="copies" value="1" min="1" max="100">
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="color_mode" class="form-label">
+                                <i class="bi bi-palette me-1"></i>Color Mode
+                            </label>
+                            <select class="form-select" id="color_mode" name="color_mode">
+                                <option value="bw">Black & White ($0.05/page)</option>
+                                <option value="color">Color ($0.15/page)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="paper_size" class="form-label">
+                                <i class="bi bi-file-earmark me-1"></i>Paper Size
+                            </label>
+                            <select class="form-select" id="paper_size" name="paper_size">
+                                <option value="A4">A4</option>
+                                <option value="Letter">Letter</option>
+                                <option value="Legal">Legal</option>
+                                <option value="A3">A3</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label for="priority" class="form-label">
+                                <i class="bi bi-flag me-1"></i>Priority
+                            </label>
+                            <select class="form-select" id="priority" name="priority">
+                                <option value="low">Low</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Advanced Options -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="duplex" name="duplex" checked>
+                            <label class="form-check-label" for="duplex">
+                                <i class="bi bi-arrow-left-right me-1"></i>
+                                Double-sided printing (saves paper & cost)
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Notes -->
+                    <div class="mb-4">
+                        <label for="notes" class="form-label">
+                            <i class="bi bi-chat-square-text me-1"></i>Notes (Optional)
+                        </label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Any special instructions..."></textarea>
+                    </div>
+                    
+                    <!-- Cost Estimate -->
+                    <div class="alert alert-info" id="costEstimate" style="display: none;">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-calculator me-2"></i>
+                            <div>
+                                <strong>Estimated Cost: $<span id="estimatedCost">0.00</span></strong>
+                                <br><small id="costBreakdown">1 page × 1 copy × $0.05 = $0.05</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-printer me-1"></i>Submit Print Job
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-md-4">
+        <!-- Account Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-person me-1"></i>Account Status</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <span>Balance:</span>
+                        <strong class="text-success">${{ "%.2f"|format(current_user.balance) }}</strong>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Monthly Quota:</span>
+                        <small>{{ current_user.get_monthly_usage() }}/{{ current_user.quota_limit }}</small>
+                    </div>
+                    {% set usage_percent = (current_user.get_monthly_usage() / current_user.quota_limit * 100) if current_user.quota_limit > 0 else 0 %}
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar 
+                            {% if usage_percent < 70 %}bg-success
+                            {% elif usage_percent < 90 %}bg-warning
+                            {% else %}bg-danger{% endif %}" 
+                            style="width: {{ usage_percent }}%"></div>
+                    </div>
+                </div>
+                
+                {% if current_user.balance < 1.0 %}
+                    <div class="alert alert-warning alert-sm">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Low balance! Please top up your account.
+                    </div>
+                {% endif %}
+                
+                {% if usage_percent > 80 %}
+                    <div class="alert alert-warning alert-sm">
+                        <i class="bi bi-exclamation-triangle me-1"></i>
+                        Approaching quota limit for this month.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Printer Status -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-printer me-1"></i>Available Printers</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <div class="status-indicator bg-success me-2"></div>
+                    <small>HP LaserJet Pro 1</small>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <div class="status-indicator bg-success me-2"></div>
+                    <small>Canon ImageRunner 2</small>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="status-indicator bg-danger me-2"></div>
+                    <small>Xerox WorkCentre 3 (Offline)</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Recent Tips -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0"><i class="bi bi-lightbulb me-1"></i>Printing Tips</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="bi bi-check text-success me-1"></i>
+                        <small>Use duplex printing to save paper and costs</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check text-success me-1"></i>
+                        <small>Choose B&W for text documents to save money</small>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check text-success me-1"></i>
+                        <small>Preview your document before printing</small>
+                    </li>
+                    <li>
+                        <i class="bi bi-check text-success me-1"></i>
+                        <small>Use high priority only when necessary</small>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Cost calculation
+function calculateCost() {
+    const copies = parseInt(document.getElementById('copies').value) || 1;
+    const colorMode = document.getElementById('color_mode').value;
+    const duplex = document.getElementById('duplex').checked;
+    
+    // Base costs per page
+    const baseCostBW = 0.05;
+    const baseCostColor = 0.15;
+    
+    let costPerPage = colorMode === 'color' ? baseCostColor : baseCostBW;
+    
+    // Apply duplex discount
+    if (duplex) {
+        costPerPage *= 0.9;
+    }
+    
+    // Assume 1 page for estimation (will be updated after file upload)
+    const estimatedPages = 1;
+    const totalCost = estimatedPages * copies * costPerPage;
+    
+    document.getElementById('estimatedCost').textContent = totalCost.toFixed(2);
+    document.getElementById('costBreakdown').textContent = 
+        `${estimatedPages} page × ${copies} copies × $${costPerPage.toFixed(2)} = $${totalCost.toFixed(2)}`;
+    
+    document.getElementById('costEstimate').style.display = 'block';
+}
+
+// Update cost when settings change
+document.getElementById('copies').addEventListener('input', calculateCost);
+document.getElementById('color_mode').addEventListener('change', calculateCost);
+document.getElementById('duplex').addEventListener('change', calculateCost);
+
+// File upload handling
+document.getElementById('file').addEventListener('change', function() {
+    if (this.files.length > 0) {
+        calculateCost();
+    }
+});
+
+// Initialize cost calculation
+calculateCost();
+</script>
+{% endblock %}

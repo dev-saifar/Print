@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome - Print Manager{% endblock %}
+
+{% block content %}
+<div class="hero-section text-center py-5">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <i class="bi bi-printer display-1 text-primary mb-4"></i>
+                <h1 class="display-4 mb-4">Professional Print Management</h1>
+                <p class="lead mb-4">
+                    Streamline your organization's printing workflow with secure, cost-effective, 
+                    and environmentally conscious print management.
+                </p>
+                
+                {% if not current_user.is_authenticated %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-md-2">
+                            <i class="bi bi-person-plus me-1"></i>Get Started
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
+                        </a>
+                    </div>
+                {% else %}
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-speedometer2 me-1"></i>Go to Dashboard
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-shield-check display-6 text-success mb-3"></i>
+                    <h5 class="card-title">Secure Printing</h5>
+                    <p class="card-text">
+                        Secure pull printing ensures your documents are only printed when you're physically present at the device.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-graph-up display-6 text-info mb-3"></i>
+                    <h5 class="card-title">Cost Control</h5>
+                    <p class="card-text">
+                        Track printing costs, set user quotas, and manage departmental budgets with detailed reporting and analytics.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-leaf display-6 text-success mb-3"></i>
+                    <h5 class="card-title">Eco-Friendly</h5>
+                    <p class="card-text">
+                        Reduce paper waste with duplex printing rules, digital workflows, and environmental impact tracking.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-cloud-upload me-2"></i>Easy Document Upload
+                    </h5>
+                    <p class="card-text">
+                        Upload documents from any device and print them securely at any connected printer in your organization.
+                    </p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check text-success me-1"></i> Supports PDF, DOC, images</li>
+                        <li><i class="bi bi-check text-success me-1"></i> Mobile-friendly interface</li>
+                        <li><i class="bi bi-check text-success me-1"></i> Drag & drop upload</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="bi bi-people me-2"></i>User Management
+                    </h5>
+                    <p class="card-text">
+                        Comprehensive user management with role-based access, quotas, and departmental organization.
+                    </p>
+                    <ul class="list-unstyled">
+                        <li><i class="bi bi-check text-success me-1"></i> Role-based permissions</li>
+                        <li><i class="bi bi-check text-success me-1"></i> Quota management</li>
+                        <li><i class="bi bi-check text-success me-1"></i> Department allocation</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
