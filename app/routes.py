@@ -19,7 +19,7 @@ bp = Blueprint('main', __name__)
 @bp.route('/')
 def index():
     if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
+        return redirect(url_for('main.dashboard'))
     return render_template('index.html')
 
 @bp.route('/login', methods=['GET', 'POST'])
@@ -34,7 +34,7 @@ def login():
             login_user(user)
             next_page = request.args.get('next')
             flash(f'Welcome back, {user.username}!', 'success')
-            return redirect(next_page) if next_page else redirect(url_for('dashboard'))
+            return redirect(next_page) if next_page else redirect(url_for('main.dashboard'))
         else:
             flash('Invalid username or password', 'error')
     
@@ -74,7 +74,7 @@ def register():
         db.session.commit()
         
         flash('Registration successful! You can now log in.', 'success')
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
     
     return render_template('register.html')
 
@@ -83,7 +83,7 @@ def register():
 def logout():
     logout_user()
     flash('You have been logged out', 'info')
-    return redirect(url_for('index'))
+    return redirect(url_for('main.index'))
 
 @bp.route('/dashboard')
 @login_required
@@ -182,7 +182,7 @@ def upload():
             )
             
             flash(f'Print job submitted successfully! Cost: ${print_job.total_cost:.2f}', 'success')
-            return redirect(url_for('jobs'))
+            return redirect(url_for('main.jobs'))
         else:
             flash('Invalid file type. Please upload PDF, DOC, DOCX, or image files.', 'error')
     
@@ -220,7 +220,7 @@ def cancel_job(job_id):
     else:
         flash('Cannot cancel job that is already processing or completed', 'error')
     
-    return redirect(url_for('jobs'))
+    return redirect(url_for('main.jobs'))
 
 @bp.route('/admin')
 @login_required
@@ -275,7 +275,7 @@ def admin_edit_user(user_id):
         
         db.session.commit()
         flash(f'User {user.username} updated successfully', 'success')
-        return redirect(url_for('admin_users'))
+        return redirect(url_for('main.admin_users'))
     
     return render_template('admin_edit_user.html', user=user)
 
@@ -425,7 +425,7 @@ def admin_add_printer():
         db.session.commit()
         
         flash(f'Printer {printer.name} added successfully!', 'success')
-        return redirect(url_for('admin_printers'))
+        return redirect(url_for('main.admin_printers'))
     
     return render_template('admin_add_printer.html')
 
@@ -461,7 +461,7 @@ def admin_edit_printer(printer_id):
         
         db.session.commit()
         flash(f'Printer {printer.name} updated successfully!', 'success')
-        return redirect(url_for('admin_printers'))
+        return redirect(url_for('main.admin_printers'))
     
     return render_template('admin_edit_printer.html', printer=printer)
 
@@ -476,13 +476,13 @@ def admin_delete_printer(printer_id):
     # Check if printer has print jobs
     if printer.print_jobs:
         flash('Cannot delete printer with existing print jobs', 'error')
-        return redirect(url_for('admin_printers'))
+        return redirect(url_for('main.admin_printers'))
     
     db.session.delete(printer)
     db.session.commit()
     
     flash(f'Printer {printer.name} deleted successfully!', 'success')
-    return redirect(url_for('admin_printers'))
+    return redirect(url_for('main.admin_printers'))
 
 # Print Policies Management
 @bp.route('/admin/policies')
@@ -518,7 +518,7 @@ def admin_add_policy():
         db.session.commit()
         
         flash(f'Print policy {policy.name} created successfully!', 'success')
-        return redirect(url_for('admin_policies'))
+        return redirect(url_for('main.admin_policies'))
     
     return render_template('admin_add_policy.html')
 
@@ -538,7 +538,7 @@ def start_scan():
     
     if not scanner.supports_scanning:
         flash('Selected device does not support scanning', 'error')
-        return redirect(url_for('scan_documents'))
+        return redirect(url_for('main.scan_documents'))
     
     # Simulate scan job creation
     scan_settings = {
@@ -553,7 +553,7 @@ def start_scan():
     
     # For demo purposes, simulate successful scan
     flash('Scan job started successfully! Document will be processed shortly.', 'success')
-    return redirect(url_for('scan_documents'))
+    return redirect(url_for('main.scan_documents'))
 
 # Mobile App Simulation Routes
 @bp.route('/mobile')
@@ -597,11 +597,11 @@ def admin_add_user():
     # Check if user exists
     if User.query.filter_by(username=username).first():
         flash('Username already exists', 'error')
-        return redirect(url_for('admin_users'))
+        return redirect(url_for('main.admin_users'))
     
     if User.query.filter_by(email=email).first():
         flash('Email already registered', 'error')
-        return redirect(url_for('admin_users'))
+        return redirect(url_for('main.admin_users'))
     
     user = User(
         username=username,
@@ -616,7 +616,7 @@ def admin_add_user():
     db.session.commit()
     
     flash(f'User {username} created successfully!', 'success')
-    return redirect(url_for('admin_users'))
+    return redirect(url_for('main.admin_users'))
 
 @bp.route('/admin/user/<int:user_id>/toggle-status', methods=['POST'])
 @login_required
