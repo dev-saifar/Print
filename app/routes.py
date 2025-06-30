@@ -9,9 +9,9 @@ from sqlalchemy import func, desc
 import PyPDF2
 import io
 
-from app import app, db, scheduler
-from models import User, PrintJob, Department, SystemSettings, Printer, PrintPolicy
-from utils import allowed_file, get_file_pages, process_print_job
+from . import app, db, scheduler
+from .models import User, PrintJob, Department, SystemSettings, Printer, PrintPolicy
+from .utils import allowed_file, get_file_pages, process_print_job
 
 @app.route('/')
 def index():

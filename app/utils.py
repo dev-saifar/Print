@@ -3,8 +3,8 @@ import PyPDF2
 from PIL import Image
 import logging
 from datetime import datetime
-from app import db
-from models import PrintJob, User
+from . import db
+from .models import PrintJob, User
 
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg', 'gif', 'txt'}
 
@@ -44,7 +44,7 @@ def get_file_pages(filepath):
 def process_print_job(job_id):
     """Simulate print job processing"""
     try:
-        from app import app
+        from . import app
         with app.app_context():
             job = PrintJob.query.get(job_id)
             if not job or job.status != 'pending':
@@ -84,7 +84,7 @@ def process_print_job(job_id):
     except Exception as e:
         logging.error(f"Error processing print job {job_id}: {e}")
         try:
-            from app import app
+            from . import app
             with app.app_context():
                 job = PrintJob.query.get(job_id)
                 if job:
