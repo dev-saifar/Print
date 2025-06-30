@@ -6,7 +6,7 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-people me-2"></i>User Management</h2>
     <div class="d-flex gap-2">
-        <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary">
+        <a href="{{ url_for('main.admin') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back to Admin
         </a>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
@@ -151,7 +151,7 @@
                 <h5 class="modal-title">Add New User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{{ url_for('admin_add_user') }}">
+            <form method="POST" action="{{ url_for('main.admin_add_user') }}">
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6">

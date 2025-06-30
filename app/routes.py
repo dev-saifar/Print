@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, flash, jsonify, send_file, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, send_file, abort, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
@@ -9,17 +9,20 @@ from sqlalchemy import func, desc
 import PyPDF2
 import io
 
-from . import app, db, scheduler
+from . import db, scheduler
 from .models import User, PrintJob, Department, SystemSettings, Printer, PrintPolicy
 from .utils import allowed_file, get_file_pages, process_print_job
 
-@app.route('/')
+# Create Blueprint
+bp = Blueprint('main', __name__)
+
+@bp.route('/')
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
     return render_template('index.html')
 
-@app.route('/login', methods=['GET', 'POST'])
+@bp.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
@@ -37,7 +40,7 @@ def login():
     
     return render_template('login.html')
 
-@app.route('/register', methods=['GET', 'POST'])
+@bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         username = request.form['username']
@@ -75,14 +78,14 @@ def register():
     
     return render_template('register.html')
 
-@app.route('/logout')
+@bp.route('/logout')
 @login_required
 def logout():
     logout_user()
     flash('You have been logged out', 'info')
     return redirect(url_for('index'))
 
-@app.route('/dashboard')
+@bp.route('/dashboard')
 @login_required
 def dashboard():
     # Get user statistics
@@ -112,7 +115,7 @@ def dashboard():
                          monthly_usage=monthly_usage,
                          monthly_cost=monthly_cost)
 
-@app.route('/upload', methods=['GET', 'POST'])
+@bp.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
     if request.method == 'POST':
@@ -136,7 +139,7 @@ def upload():
             
             # Save file
             filename = str(uuid.uuid4()) + '_' + secure_filename(file.filename)
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
             file.save(file_path)
             
             # Get page count
@@ -185,7 +188,7 @@ def upload():
     
     return render_template('upload.html')
 
-@app.route('/jobs')
+@bp.route('/jobs')
 @login_required
 def jobs():
     page = request.args.get('page', 1, type=int)
@@ -202,7 +205,7 @@ def jobs():
     
     return render_template('jobs.html', jobs=jobs, status_filter=status_filter)
 
-@app.route('/job/<int:job_id>/cancel', methods=['POST'])
+@bp.route('/job/<int:job_id>/cancel', methods=['POST'])
 @login_required
 def cancel_job(job_id):
     job = PrintJob.query.get_or_404(job_id)
@@ -219,7 +222,7 @@ def cancel_job(job_id):
     
     return redirect(url_for('jobs'))
 
-@app.route('/admin')
+@bp.route('/admin')
 @login_required
 def admin():
     if current_user.role != 'admin':
@@ -243,7 +246,7 @@ def admin():
                          recent_jobs=recent_jobs,
                          recent_users=recent_users)
 
-@app.route('/admin/users')
+@bp.route('/admin/users')
 @login_required
 def admin_users():
     if current_user.role != 'admin':
@@ -256,7 +259,7 @@ def admin_users():
     
     return render_template('admin_users.html', users=users)
 
-@app.route('/admin/user/<int:user_id>/edit', methods=['GET', 'POST'])
+@bp.route('/admin/user/<int:user_id>/edit', methods=['GET', 'POST'])
 @login_required
 def admin_edit_user(user_id):
     if current_user.role != 'admin':
@@ -276,7 +279,7 @@ def admin_edit_user(user_id):
     
     return render_template('admin_edit_user.html', user=user)
 
-@app.route('/reports')
+@bp.route('/reports')
 @login_required
 def reports():
     # Date range filter
@@ -326,7 +329,7 @@ def reports():
                          daily_stats=daily_stats,
                          days=days)
 
-@app.route('/api/chart_data')
+@bp.route('/api/chart_data')
 @login_required
 def chart_data():
     days = request.args.get('days', 30, type=int)
@@ -377,7 +380,7 @@ def chart_data():
     })
 
 # Printer Management Routes
-@app.route('/admin/printers')
+@bp.route('/admin/printers')
 @login_required
 def admin_printers():
     if current_user.role != 'admin':
@@ -390,7 +393,7 @@ def admin_printers():
     
     return render_template('admin_printers.html', printers=printers)
 
-@app.route('/admin/printer/add', methods=['GET', 'POST'])
+@bp.route('/admin/printer/add', methods=['GET', 'POST'])
 @login_required
 def admin_add_printer():
     if current_user.role != 'admin':
@@ -426,7 +429,7 @@ def admin_add_printer():
     
     return render_template('admin_add_printer.html')
 
-@app.route('/admin/printer/<int:printer_id>/edit', methods=['GET', 'POST'])
+@bp.route('/admin/printer/<int:printer_id>/edit', methods=['GET', 'POST'])
 @login_required
 def admin_edit_printer(printer_id):
     if current_user.role != 'admin':
@@ -462,7 +465,7 @@ def admin_edit_printer(printer_id):
     
     return render_template('admin_edit_printer.html', printer=printer)
 
-@app.route('/admin/printer/<int:printer_id>/delete', methods=['POST'])
+@bp.route('/admin/printer/<int:printer_id>/delete', methods=['POST'])
 @login_required
 def admin_delete_printer(printer_id):
     if current_user.role != 'admin':
@@ -482,7 +485,7 @@ def admin_delete_printer(printer_id):
     return redirect(url_for('admin_printers'))
 
 # Print Policies Management
-@app.route('/admin/policies')
+@bp.route('/admin/policies')
 @login_required
 def admin_policies():
     if current_user.role != 'admin':
@@ -491,7 +494,7 @@ def admin_policies():
     policies = PrintPolicy.query.order_by(PrintPolicy.name).all()
     return render_template('admin_policies.html', policies=policies)
 
-@app.route('/admin/policy/add', methods=['GET', 'POST'])
+@bp.route('/admin/policy/add', methods=['GET', 'POST'])
 @login_required
 def admin_add_policy():
     if current_user.role != 'admin':
@@ -520,14 +523,14 @@ def admin_add_policy():
     return render_template('admin_add_policy.html')
 
 # Scanning Routes
-@app.route('/scan')
+@bp.route('/scan')
 @login_required
 def scan_documents():
     # Get available scanners (printers with scanning capability)
     scanners = Printer.query.filter_by(supports_scanning=True, is_active=True).all()
     return render_template('scan.html', scanners=scanners)
 
-@app.route('/scan/start', methods=['POST'])
+@bp.route('/scan/start', methods=['POST'])
 @login_required
 def start_scan():
     scanner_id = request.form.get('scanner_id')
@@ -553,12 +556,12 @@ def start_scan():
     return redirect(url_for('scan_documents'))
 
 # Mobile App Simulation Routes
-@app.route('/mobile')
+@bp.route('/mobile')
 def mobile_app():
     """Mobile app interface simulation"""
     return render_template('mobile_app.html')
 
-@app.route('/mobile/print', methods=['POST'])
+@bp.route('/mobile/print', methods=['POST'])
 def mobile_print():
     """Handle mobile print requests"""
     # Simulate mobile print job
@@ -569,7 +572,7 @@ def mobile_print():
     return jsonify({'status': 'success', 'message': 'Print job queued'})
 
 # Email-to-Print Simulation
-@app.route('/admin/email-to-print')
+@bp.route('/admin/email-to-print')
 @login_required
 def admin_email_to_print():
     if current_user.role != 'admin':
@@ -578,7 +581,7 @@ def admin_email_to_print():
     return render_template('admin_email_to_print.html')
 
 # User management helper routes
-@app.route('/admin/user/add', methods=['POST'])
+@bp.route('/admin/user/add', methods=['POST'])
 @login_required
 def admin_add_user():
     if current_user.role != 'admin':
@@ -615,7 +618,7 @@ def admin_add_user():
     flash(f'User {username} created successfully!', 'success')
     return redirect(url_for('admin_users'))
 
-@app.route('/admin/user/<int:user_id>/toggle-status', methods=['POST'])
+@bp.route('/admin/user/<int:user_id>/toggle-status', methods=['POST'])
 @login_required
 def admin_toggle_user_status(user_id):
     if current_user.role != 'admin':
@@ -628,7 +631,7 @@ def admin_toggle_user_status(user_id):
     status = 'activated' if user.is_active else 'deactivated'
     return jsonify({'success': True, 'message': f'User {status} successfully'})
 
-@app.route('/admin/user/<int:user_id>/reset-quota', methods=['POST'])
+@bp.route('/admin/user/<int:user_id>/reset-quota', methods=['POST'])
 @login_required
 def admin_reset_user_quota(user_id):
     if current_user.role != 'admin':
@@ -640,7 +643,7 @@ def admin_reset_user_quota(user_id):
     
     return jsonify({'success': True, 'message': 'Quota reset successfully'})
 
-@app.route('/admin/user/<int:user_id>/reset-password', methods=['POST'])
+@bp.route('/admin/user/<int:user_id>/reset-password', methods=['POST'])
 @login_required  
 def admin_reset_user_password(user_id):
     if current_user.role != 'admin':

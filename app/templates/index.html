@@ -16,15 +16,15 @@
                 
                 {% if not current_user.is_authenticated %}
                     <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-md-2">
+                        <a href="{{ url_for('main.register') }}" class="btn btn-primary btn-lg me-md-2">
                             <i class="bi bi-person-plus me-1"></i>Get Started
                         </a>
-                        <a href="{{ url_for('login') }}" class="btn btn-outline-secondary btn-lg">
+                        <a href="{{ url_for('main.login') }}" class="btn btn-outline-secondary btn-lg">
                             <i class="bi bi-box-arrow-in-right me-1"></i>Sign In
                         </a>
                     </div>
                 {% else %}
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-primary btn-lg">
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary btn-lg">
                         <i class="bi bi-speedometer2 me-1"></i>Go to Dashboard
                     </a>
                 {% endif %}

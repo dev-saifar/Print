@@ -170,12 +170,12 @@
 // Time range selector
 document.querySelectorAll('input[name="timeRange"]').forEach(radio => {
     radio.addEventListener('change', function() {
-        window.location.href = `{{ url_for('reports') }}?days=${this.value}`;
+        window.location.href = `{{ url_for('main.reports') }}?days=${this.value}`;
     });
 });
 
 // Load chart data
-fetch(`{{ url_for('chart_data') }}?days={{ days }}`)
+fetch(`{{ url_for('main.chart_data') }}?days={{ days }}`)
     .then(response => response.json())
     .then(data => {
         // Daily Usage Chart

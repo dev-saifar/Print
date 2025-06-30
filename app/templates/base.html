@@ -21,7 +21,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
+            <a class="navbar-brand" href="{{ url_for('main.index') }}">
                 <i class="bi bi-printer me-2"></i>Print Manager
             </a>
             
@@ -33,32 +33,32 @@
                 <ul class="navbar-nav me-auto">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('dashboard') }}">
+                            <a class="nav-link" href="{{ url_for('main.dashboard') }}">
                                 <i class="bi bi-speedometer2 me-1"></i>Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('upload') }}">
+                            <a class="nav-link" href="{{ url_for('main.upload') }}">
                                 <i class="bi bi-cloud-upload me-1"></i>Print
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('jobs') }}">
+                            <a class="nav-link" href="{{ url_for('main.jobs') }}">
                                 <i class="bi bi-list-task me-1"></i>My Jobs
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('scan_documents') }}">
+                            <a class="nav-link" href="{{ url_for('main.scan_documents') }}">
                                 <i class="bi bi-camera me-1"></i>Scan
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('reports') }}">
+                            <a class="nav-link" href="{{ url_for('main.reports') }}">
                                 <i class="bi bi-graph-up me-1"></i>Reports
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('mobile_app') }}">
+                            <a class="nav-link" href="{{ url_for('main.mobile_app') }}">
                                 <i class="bi bi-phone me-1"></i>Mobile
                             </a>
                         </li>
@@ -68,20 +68,20 @@
                                     <i class="bi bi-gear me-1"></i>Admin
                                 </a>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="{{ url_for('admin') }}">
+                                    <li><a class="dropdown-item" href="{{ url_for('main.admin') }}">
                                         <i class="bi bi-speedometer2 me-1"></i>Dashboard
                                     </a></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('admin_users') }}">
+                                    <li><a class="dropdown-item" href="{{ url_for('main.admin_users') }}">
                                         <i class="bi bi-people me-1"></i>Users
                                     </a></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('admin_printers') }}">
+                                    <li><a class="dropdown-item" href="{{ url_for('main.admin_printers') }}">
                                         <i class="bi bi-printer me-1"></i>Printers
                                     </a></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('admin_policies') }}">
+                                    <li><a class="dropdown-item" href="{{ url_for('main.admin_policies') }}">
                                         <i class="bi bi-shield-check me-1"></i>Print Policies
                                     </a></li>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="{{ url_for('admin_email_to_print') }}">
+                                    <li><a class="dropdown-item" href="{{ url_for('main.admin_email_to_print') }}">
                                         <i class="bi bi-envelope me-1"></i>Email-to-Print
                                     </a></li>
                                 </ul>
@@ -102,19 +102,19 @@
                                 <li><span class="dropdown-item-text">Balance: ${{ "%.2f"|format(current_user.balance) }}</span></li>
                                 <li><span class="dropdown-item-text">Quota: {{ current_user.get_monthly_usage() }}/{{ current_user.quota_limit }} pages</span></li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">
+                                <li><a class="dropdown-item" href="{{ url_for('main.logout') }}">
                                     <i class="bi bi-box-arrow-right me-1"></i>Logout
                                 </a></li>
                             </ul>
                         </li>
                     {% else %}
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('login') }}">
+                            <a class="nav-link" href="{{ url_for('main.login') }}">
                                 <i class="bi bi-box-arrow-in-right me-1"></i>Login
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('register') }}">
+                            <a class="nav-link" href="{{ url_for('main.register') }}">
                                 <i class="bi bi-person-plus me-1"></i>Register
                             </a>
                         </li>

@@ -20,10 +20,10 @@ scheduler = BackgroundScheduler()
 
 def create_app():
     app = Flask(__name__, template_folder="templates", static_folder="static")
-    app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
+    app.secret_key = os.environ.get("SESSION_SECRET")
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///printmanager.db"
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_recycle": 300,
         "pool_pre_ping": True,
@@ -42,7 +42,9 @@ def create_app():
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     with app.app_context():
-        from . import models, routes  # noqa: F401
+        from . import models  # noqa: F401
+        from .routes import bp
+        app.register_blueprint(bp)
         db.create_all()
         _create_default_data()
 
@@ -78,5 +80,5 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-app = create_app()
+
 
