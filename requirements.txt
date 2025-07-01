@@ -15,3 +15,16 @@ flask
 flask-sqlalchemy
 gunicorn
 psycopg2-binary
+cryptography
+email_validator
+flask
+flask-sqlalchemy
+gunicorn
+psycopg2-binary
+qrcode
+requests
+flask-apscheduler
+flask-migrate
+python-dotenv
+qrcode
+watchdog

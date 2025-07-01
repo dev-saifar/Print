@@ -2,20 +2,15 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_apscheduler import APScheduler
-from flask_migrate import Migrate
-from flask import redirect, url_for
-from dotenv import load_dotenv
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
+import logging
 import threading
 from .lpr_server import start_lpr_server
-basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # for top-level print_jobs/
-# Load environment variables from .env
-load_dotenv()
 
 # Initialize extensions (no app yet)
 db = SQLAlchemy()
 scheduler = APScheduler()
-migrate = Migrate()  # NEW: Initialize migrate
 
 login_manager = LoginManager()
 login_manager.login_view = 'main.login'
@@ -23,23 +18,41 @@ login_manager.login_message_category = 'info'
 
 def create_app():
     app = Flask(__name__)
-    app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-default-secret')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///print.db')
+    
+    # Configure for Replit environment
+    app.secret_key = os.environ.get("SESSION_SECRET")
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+    
+    # Database configuration
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
+    # File upload configuration
     app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "uploads")
     app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     # Initialize extensions with app
     db.init_app(app)
-    migrate.init_app(app, db)  # ✅ Patch Migrate properly
     login_manager.init_app(app)
     scheduler.init_app(app)
     scheduler.start()
 
+    # Register routes
     from .routes import bp
     app.register_blueprint(bp)
 
+    # Create database tables
+    with app.app_context():
+        from . import models  # Import models to register them
+        db.create_all()
+        _create_default_data()
+
+    # Start LPR server in background thread
     threading.Thread(target=start_lpr_server, args=(app,), daemon=True).start()
 
     return app

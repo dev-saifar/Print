@@ -2,7 +2,7 @@ modules = ["web", "python-3.11", "nodejs-20"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["freetype", "lcms2", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "postgresql", "tcl", "tk", "zlib"]
+packages = ["cargo", "freetype", "lcms2", "libiconv", "libimagequant", "libjpeg", "libtiff", "libwebp", "libxcrypt", "openjpeg", "openssl", "pkg-config", "postgresql", "rustc", "tcl", "tk", "zlib"]
 
 [deployment]
 deploymentTarget = "autoscale"
@@ -28,6 +28,10 @@ author = "agent"
 task = "shell.exec"
 args = "gunicorn --bind 0.0.0.0:5000 --reuse-port --reload main:app"
 waitForPort = 5000
+
+[[ports]]
+localPort = 515
+externalPort = 3000
 
 [[ports]]
 localPort = 5000

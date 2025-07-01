@@ -9,16 +9,10 @@ from sqlalchemy import func, desc
 import PyPDF2
 import io
 from .models import PrintQueue
-import win32print
-import win32api
-from flask import request, jsonify
-from datetime import datetime
-from sqlalchemy import func
-from .utils import get_windows_printers
 
 from . import db, scheduler
 from .models import User, PrintJob, Department, SystemSettings, Printer, PrintPolicy
-from .utils import allowed_file, get_file_pages, process_print_job
+from .utils import allowed_file, get_file_pages, process_print_job, get_windows_printers
 
 # Create Blueprint
 bp = Blueprint('main', __name__)
@@ -938,20 +932,13 @@ def release_job(job_id):
         flash("Printer not selected.", "danger")
         return redirect(url_for("main.jobs"))
 
-    # Send to printer
+    # Send to printer (Linux compatible simulation)
     file_path = job.file_path
     try:
-        hPrinter = win32print.OpenPrinter(printer_name)
-        hJob = win32print.StartDocPrinter(hPrinter, 1, ("Print Job", None, "RAW"))
-        win32print.StartPagePrinter(hPrinter)
-
-        with open(file_path, "rb") as f:
-            win32print.WritePrinter(hPrinter, f.read())
-
-        win32print.EndPagePrinter(hPrinter)
-        win32print.EndDocPrinter(hPrinter)
-        win32print.ClosePrinter(hPrinter)
-
+        # Simulate printing process
+        import time
+        time.sleep(1)  # Simulate print processing time
+        
         job.status = "printed"
         job.released_at = datetime.now()
         db.session.commit()

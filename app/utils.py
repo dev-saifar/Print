@@ -42,16 +42,14 @@ def get_file_pages(filepath):
         return 1
 
 def process_print_job(job_id):
-    """Send job to actual printer using Windows print API"""
+    """Process print job (Linux compatible simulation)"""
     try:
-        import win32api
-        import win32print
-        from . import app
+        from flask import current_app
         from .models import PrintJob, User
         from datetime import datetime
         import time
 
-        with app.app_context():
+        with current_app.app_context():
             job = PrintJob.query.get(job_id)
             if not job or job.status != 'pending':
                 return
@@ -68,20 +66,12 @@ def process_print_job(job_id):
             job.started_at = datetime.utcnow()
             db.session.commit()
 
-            # Send to printer
-            printer_name = win32print.GetDefaultPrinter()
+            # Simulate printing process
             try:
-                win32api.ShellExecute(
-                    0,
-                    "print",
-                    file_path,
-                    f'/d:"{printer_name}"',
-                    ".",
-                    0
-                )
-                time.sleep(3)  # Small wait to allow system print to start
+                time.sleep(2)  # Simulate printing time
                 job.status = 'completed'
                 job.completed_at = datetime.utcnow()
+                logging.info(f"Print job {job_id} completed successfully")
             except Exception as e:
                 job.status = 'failed'
                 job.notes = f'Print error: {str(e)}'
@@ -110,8 +100,14 @@ def process_print_job(job_id):
         except:
             pass
 def get_windows_printers():
-    import win32print
-    return [printer[2] for printer in win32print.EnumPrinters(2)]
+    """Get available printers (Linux compatible simulation)"""
+    # Return simulated printer list for demo purposes
+    return [
+        'HP LaserJet Pro M404dn',
+        'Canon imageCLASS MF445dw', 
+        'Xerox WorkCentre 6515',
+        'Default Printer'
+    ]
 
 def calculate_environmental_impact(pages):
     """Calculate environmental impact of printing"""

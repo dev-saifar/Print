@@ -3,8 +3,6 @@ import threading
 import os
 from datetime import datetime
 from flask import current_app
-from . import db
-from .models import PrintQueue
 
 LPR_PORT = 515
 SAVE_FOLDER = "print_jobs"
@@ -52,9 +50,11 @@ def handle_client(conn, addr, flask_app):
 
         # Store to DB with Flask app context
         with flask_app.app_context():
+            from . import db
+            from .models import PrintQueue
             new_job = PrintQueue(
                 filename=filepath,
-                username=addr[0],  # Can replace with LPR username if available
+                user_ip=addr[0],  # Use user_ip field from the model
                 timestamp=datetime.utcnow(),
                 status='pending',
                 queue_name=queue_name
