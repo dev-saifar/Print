@@ -141,7 +141,7 @@
                             </td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <a href="{{ url_for('admin_edit_printer', printer_id=printer.id) }}" 
+                                    <a href="{{ url_for('main.admin_edit_printer', printer_id=printer.id) }}" 
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
@@ -167,7 +167,7 @@
                     <ul class="pagination justify-content-center">
                         {% if printers.has_prev %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin_printers', page=printers.prev_num) }}">Previous</a>
+                                <a class="page-link" href="{{ url_for('main.admin_printers', page=printers.prev_num) }}">Previous</a>
                             </li>
                         {% endif %}
                         
@@ -175,7 +175,7 @@
                             {% if page_num %}
                                 {% if page_num != printers.page %}
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ url_for('admin_printers', page=page_num) }}">{{ page_num }}</a>
+                                        <a class="page-link" href="{{ url_for('main.admin_printers', page=page_num) }}">{{ page_num }}</a>
                                     </li>
                                 {% else %}
                                     <li class="page-item active">
@@ -191,7 +191,7 @@
                         
                         {% if printers.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('admin_printers', page=printers.next_num) }}">Next</a>
+                                <a class="page-link" href="{{ url_for('main.admin_printers', page=printers.next_num) }}">Next</a>
                             </li>
                         {% endif %}
                     </ul>

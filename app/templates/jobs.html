@@ -118,7 +118,7 @@
                             </td>
                             <td>
                                 {% if job.status == 'pending' %}
-                                    <form method="POST" action="{{ url_for('cancel_job', job_id=job.id) }}" style="display: inline;">
+                                    <form method="POST" action="{{ url_for('main.cancel_job', job_id=job.id) }}" style="display: inline;">
                                         <button type="submit" class="btn btn-sm btn-outline-danger" 
                                                 onclick="return confirm('Are you sure you want to cancel this job?')">
                                             <i class="bi bi-x-circle"></i>
@@ -153,7 +153,7 @@
                     <ul class="pagination justify-content-center">
                         {% if jobs.has_prev %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('jobs', page=jobs.prev_num, status=status_filter) }}">Previous</a>
+                                <a class="page-link" href="{{ url_for('main.jobs', page=jobs.prev_num, status=status_filter) }}">Previous</a>
                             </li>
                         {% endif %}
                         
@@ -161,7 +161,7 @@
                             {% if page_num %}
                                 {% if page_num != jobs.page %}
                                     <li class="page-item">
-                                        <a class="page-link" href="{{ url_for('jobs', page=page_num, status=status_filter) }}">{{ page_num }}</a>
+                                        <a class="page-link" href="{{ url_for('main.jobs', page=page_num, status=status_filter) }}">{{ page_num }}</a>
                                     </li>
                                 {% else %}
                                     <li class="page-item active">
@@ -177,7 +177,7 @@
                         
                         {% if jobs.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="{{ url_for('jobs', page=jobs.next_num, status=status_filter) }}">Next</a>
+                                <a class="page-link" href="{{ url_for('main.jobs', page=jobs.next_num, status=status_filter) }}">Next</a>
                             </li>
                         {% endif %}
                     </ul>

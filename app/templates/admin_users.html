@@ -76,7 +76,7 @@
                             <td>{{ user.created_at.strftime('%b %d, %Y') }}</td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <a href="{{ url_for('admin_edit_user', user_id=user.id) }}" 
+                                    <a href="{{ url_for('main.admin_edit_user', user_id=user.id) }}" 
                                        class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
