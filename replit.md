@@ -234,7 +234,7 @@ This is a full-stack Print Management Software platform (similar to MyQ X or Pap
   - Built secure printing (Follow-Me) system with multi-factor authentication
   - Added CUPS integration for universal print driver support
   - Created comprehensive installation and deployment guide
-  - Added support for major MFP brands (Canon, Xerox, HP)
+  - Added support for major MFP brands (Canon, Xerox, HP, Kyocera)
 
 ## User Preferences
 

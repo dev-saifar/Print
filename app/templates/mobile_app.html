@@ -261,7 +261,7 @@ function openMobileScan() {
 function openMobileJobs() {
     showToast('Loading your print jobs...', 'info');
     setTimeout(() => {
-        window.location.href = '{{ url_for("jobs") }}';
+        window.location.href = '{{ url_for("main.jobs") }}';
     }, 500);
 }
 

@@ -712,6 +712,8 @@ def api_printer_status():
                         vendor = 'canon'
                     elif 'xerox' in model_lower:
                         vendor = 'xerox'
+                    elif 'kyocera' in model_lower or 'ecosys' in model_lower or 'taskalfa' in model_lower:
+                        vendor = 'kyocera'
                 
                 monitor.add_printer(printer.ip_address, 'public', vendor)
         
@@ -816,6 +818,8 @@ def api_printer_details(printer_id):
                 vendor = 'canon'
             elif 'xerox' in model_lower:
                 vendor = 'xerox'
+            elif 'kyocera' in model_lower or 'ecosys' in model_lower or 'taskalfa' in model_lower:
+                vendor = 'kyocera'
         
         # Create monitor and get detailed info
         monitor = SNMPPrinterMonitor()

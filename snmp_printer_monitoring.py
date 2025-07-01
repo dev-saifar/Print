@@ -94,6 +94,30 @@ VENDOR_OIDS = {
         'total_impressions': '1.3.6.1.4.1.253.8.53.3.2.1.6.1.20.1',
         'color_impressions': '1.3.6.1.4.1.253.8.53.3.2.1.6.1.20.2',
         'fuser_count': '1.3.6.1.4.1.253.8.53.3.2.1.6.1.20.33'
+    },
+    'kyocera': {
+        'model': '1.3.6.1.4.1.1347.42.2.1.1.1.4.0',
+        'serial_number': '1.3.6.1.4.1.1347.42.2.1.1.1.5.0',
+        'firmware_version': '1.3.6.1.4.1.1347.42.2.1.1.1.6.0',
+        'total_pages': '1.3.6.1.4.1.1347.43.10.1.1.12.1.1',
+        'total_copies': '1.3.6.1.4.1.1347.43.10.1.1.12.1.2',
+        'total_prints': '1.3.6.1.4.1.1347.43.10.1.1.12.1.3',
+        'color_pages': '1.3.6.1.4.1.1347.43.10.1.1.12.1.4',
+        'duplex_pages': '1.3.6.1.4.1.1347.43.10.1.1.12.1.5',
+        'scan_pages': '1.3.6.1.4.1.1347.43.10.1.1.12.1.6',
+        'fax_pages': '1.3.6.1.4.1.1347.43.10.1.1.12.1.7',
+        'jam_count': '1.3.6.1.4.1.1347.43.10.1.1.12.1.8',
+        'paper_feed_count': '1.3.6.1.4.1.1347.43.10.1.1.12.1.9',
+        'drum_count': '1.3.6.1.4.1.1347.43.5.4.2.51.1.0',
+        'drum_remaining': '1.3.6.1.4.1.1347.43.5.4.2.51.2.0',
+        'toner_black': '1.3.6.1.4.1.1347.43.5.1.1.26.1.2.1',
+        'toner_cyan': '1.3.6.1.4.1.1347.43.5.1.1.26.1.2.2',
+        'toner_magenta': '1.3.6.1.4.1.1347.43.5.1.1.26.1.2.3',
+        'toner_yellow': '1.3.6.1.4.1.1347.43.5.1.1.26.1.2.4',
+        'maintenance_count': '1.3.6.1.4.1.1347.43.10.1.1.12.1.10',
+        'device_status': '1.3.6.1.4.1.1347.42.2.1.2.1.2.0',
+        'engine_status': '1.3.6.1.4.1.1347.42.2.1.2.1.3.0',
+        'current_user': '1.3.6.1.4.1.1347.42.2.1.2.1.4.0'
     }
 }
 
@@ -279,14 +303,36 @@ class SNMPPrinterMonitor:
             if vendor in VENDOR_OIDS:
                 vendor_oids = VENDOR_OIDS[vendor]
                 try:
-                    if 'total_pages' in vendor_oids:
-                        counters.total_pages = await self._snmp_get(ip_address, community, vendor_oids['total_pages']) or 0
-                    if 'color_pages' in vendor_oids:
-                        counters.color_pages = await self._snmp_get(ip_address, community, vendor_oids['color_pages']) or 0
-                    if 'duplex_pages' in vendor_oids:
-                        counters.duplex_pages = await self._snmp_get(ip_address, community, vendor_oids['duplex_pages']) or 0
-                    if 'jam_events' in vendor_oids:
-                        counters.jam_events = await self._snmp_get(ip_address, community, vendor_oids['jam_events']) or 0
+                    if vendor == 'kyocera':
+                        # Kyocera-specific counter handling
+                        if 'total_pages' in vendor_oids:
+                            counters.total_pages = await self._snmp_get(ip_address, community, vendor_oids['total_pages']) or 0
+                        if 'color_pages' in vendor_oids:
+                            counters.color_pages = await self._snmp_get(ip_address, community, vendor_oids['color_pages']) or 0
+                        if 'duplex_pages' in vendor_oids:
+                            counters.duplex_pages = await self._snmp_get(ip_address, community, vendor_oids['duplex_pages']) or 0
+                        if 'jam_count' in vendor_oids:
+                            counters.jam_events = await self._snmp_get(ip_address, community, vendor_oids['jam_count']) or 0
+                        if 'maintenance_count' in vendor_oids:
+                            counters.maintenance_count = await self._snmp_get(ip_address, community, vendor_oids['maintenance_count']) or 0
+                        
+                        # Additional Kyocera counters
+                        if 'total_copies' in vendor_oids:
+                            total_copies = await self._snmp_get(ip_address, community, vendor_oids['total_copies']) or 0
+                            counters.total_pages = max(counters.total_pages, total_copies)
+                        if 'total_prints' in vendor_oids:
+                            total_prints = await self._snmp_get(ip_address, community, vendor_oids['total_prints']) or 0
+                            counters.total_pages = max(counters.total_pages, total_prints)
+                    else:
+                        # Other vendors
+                        if 'total_pages' in vendor_oids:
+                            counters.total_pages = await self._snmp_get(ip_address, community, vendor_oids['total_pages']) or 0
+                        if 'color_pages' in vendor_oids:
+                            counters.color_pages = await self._snmp_get(ip_address, community, vendor_oids['color_pages']) or 0
+                        if 'duplex_pages' in vendor_oids:
+                            counters.duplex_pages = await self._snmp_get(ip_address, community, vendor_oids['duplex_pages']) or 0
+                        if 'jam_events' in vendor_oids:
+                            counters.jam_events = await self._snmp_get(ip_address, community, vendor_oids['jam_events']) or 0
                 except Exception as e:
                     self.logger.warning(f"Vendor-specific counter retrieval failed: {e}")
             
@@ -310,7 +356,63 @@ class SNMPPrinterMonitor:
         try:
             supplies = []
             
-            # Walk through supply table
+            # Check if this is a monitored printer to get vendor info
+            printer_config = self.monitored_printers.get(ip_address, {})
+            vendor = printer_config.get('vendor', 'generic')
+            
+            # Try vendor-specific supply monitoring first
+            if vendor == 'kyocera' and vendor in VENDOR_OIDS:
+                vendor_oids = VENDOR_OIDS[vendor]
+                
+                # Kyocera-specific toner monitoring
+                toner_colors = [
+                    ('toner_black', 'Black Toner'),
+                    ('toner_cyan', 'Cyan Toner'),
+                    ('toner_magenta', 'Magenta Toner'),
+                    ('toner_yellow', 'Yellow Toner')
+                ]
+                
+                for toner_oid, description in toner_colors:
+                    if toner_oid in vendor_oids:
+                        try:
+                            level = await self._snmp_get(ip_address, community, vendor_oids[toner_oid])
+                            if level is not None:
+                                # Kyocera returns percentage directly
+                                percentage = int(level)
+                                supply = SupplyInfo(
+                                    index=len(supplies) + 1,
+                                    description=description,
+                                    type="Toner",
+                                    level=percentage,
+                                    max_capacity=100,
+                                    percentage=float(percentage)
+                                )
+                                supplies.append(supply)
+                        except Exception as e:
+                            self.logger.warning(f"Error getting Kyocera {description}: {e}")
+                
+                # Kyocera drum monitoring
+                if 'drum_remaining' in vendor_oids:
+                    try:
+                        drum_level = await self._snmp_get(ip_address, community, vendor_oids['drum_remaining'])
+                        if drum_level is not None:
+                            supply = SupplyInfo(
+                                index=len(supplies) + 1,
+                                description="Drum Unit",
+                                type="Drum",
+                                level=int(drum_level),
+                                max_capacity=100,
+                                percentage=float(drum_level)
+                            )
+                            supplies.append(supply)
+                    except Exception as e:
+                        self.logger.warning(f"Error getting Kyocera drum level: {e}")
+                
+                # If vendor-specific worked, return those results
+                if supplies:
+                    return supplies
+            
+            # Fallback to standard SNMP supply monitoring
             supply_indices = await self._snmp_walk(ip_address, community, PRINTER_SNMP_OIDS['supply_index'])
             
             for index in supply_indices:
@@ -391,8 +493,26 @@ class SNMPPrinterMonitor:
             # Return simulated data based on OID
             if 'device_name' in oid:
                 return f"Printer-{ip_address.split('.')[-1]}"
-            elif 'total_pages' in oid:
+            elif 'total_pages' in oid or '1.3.6.1.4.1.1347.43.10.1.1.12.1.1' in oid:
                 return 12500
+            elif 'color_pages' in oid or '1.3.6.1.4.1.1347.43.10.1.1.12.1.4' in oid:
+                return 3200
+            elif 'duplex_pages' in oid or '1.3.6.1.4.1.1347.43.10.1.1.12.1.5' in oid:
+                return 8900
+            elif 'jam_count' in oid or '1.3.6.1.4.1.1347.43.10.1.1.12.1.8' in oid:
+                return 15
+            elif 'maintenance_count' in oid or '1.3.6.1.4.1.1347.43.10.1.1.12.1.10' in oid:
+                return 3
+            elif 'toner_black' in oid or '1.3.6.1.4.1.1347.43.5.1.1.26.1.2.1' in oid:
+                return 85  # Kyocera percentage
+            elif 'toner_cyan' in oid or '1.3.6.1.4.1.1347.43.5.1.1.26.1.2.2' in oid:
+                return 72
+            elif 'toner_magenta' in oid or '1.3.6.1.4.1.1347.43.5.1.1.26.1.2.3' in oid:
+                return 68
+            elif 'toner_yellow' in oid or '1.3.6.1.4.1.1347.43.5.1.1.26.1.2.4' in oid:
+                return 91
+            elif 'drum_remaining' in oid or '1.3.6.1.4.1.1347.43.5.4.2.51.2.0' in oid:
+                return 45  # Drum percentage
             elif 'supply_level' in oid:
                 return 85
             elif 'supply_max_capacity' in oid:
@@ -401,6 +521,12 @@ class SNMPPrinterMonitor:
                 return "Black Toner"
             elif 'printer_status' in oid:
                 return 3  # Idle
+            elif 'model' in oid and '1.3.6.1.4.1.1347' in oid:
+                return "ECOSYS M6635cidn"
+            elif 'serial_number' in oid and '1.3.6.1.4.1.1347' in oid:
+                return "ZKR1234567"
+            elif 'firmware_version' in oid and '1.3.6.1.4.1.1347' in oid:
+                return "3AY-3700-030"
             else:
                 return None
                 
@@ -555,6 +681,7 @@ if __name__ == "__main__":
         monitor.add_printer('192.168.1.100', 'public', 'hp')
         monitor.add_printer('192.168.1.101', 'public', 'canon')
         monitor.add_printer('192.168.1.102', 'public', 'xerox')
+        monitor.add_printer('192.168.1.103', 'public', 'kyocera')
         
         # Monitor all printers
         results = await monitor.monitor_all_printers()
