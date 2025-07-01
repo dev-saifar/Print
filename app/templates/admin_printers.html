@@ -9,6 +9,9 @@
         <button id="refreshSnmpData" class="btn btn-outline-info">
             <i class="bi bi-arrow-clockwise me-1"></i>Refresh SNMP Data
         </button>
+        <button id="discoverPrinters" class="btn btn-outline-success">
+            <i class="bi bi-search me-1"></i>Discover Printers
+        </button>
         <a href="{{ url_for('main.admin') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back to Admin
         </a>
@@ -222,6 +225,33 @@ document.addEventListener('DOMContentLoaded', function() {
     // Refresh button click handler
     document.getElementById('refreshSnmpData').addEventListener('click', function() {
         refreshSNMPData();
+    });
+
+    // Discover printers button
+    document.getElementById('discoverPrinters').addEventListener('click', function() {
+        const subnet = prompt('Enter subnet to scan (e.g. 192.168.1.0/24):', '192.168.1.0/24');
+        if (!subnet) return;
+        const btn = this;
+        btn.disabled = true;
+        fetch(`/admin/printers/discover?subnet=${encodeURIComponent(subnet)}`)
+            .then(r => r.json())
+            .then(data => {
+                const printers = data.printers || [];
+                if (printers.length && confirm(`Add ${printers.length} printers to the database?`)) {
+                    fetch('/admin/printers/discover', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({printers})
+                    }).then(res => res.json()).then(res => {
+                        if (res.success) { location.reload(); }
+                        else { showToast('Error adding printers', 'error'); }
+                    });
+                } else if (!printers.length) {
+                    showToast('No printers found', 'info');
+                }
+            })
+            .catch(() => showToast('Error discovering printers', 'error'))
+            .finally(() => { btn.disabled = false; });
     });
 });
 
