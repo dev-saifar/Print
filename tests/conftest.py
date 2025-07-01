@@ -10,7 +10,9 @@ os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
 def app(monkeypatch):
     from app import create_app
     # Prevent LPR server from starting
-    monkeypatch.setattr('app.lpr_server.start_lpr_server', lambda app: None)
+    monkeypatch.setattr('app.start_lpr_server', lambda app: None)
+    # Prevent scheduler from running during tests
+    monkeypatch.setattr('app.scheduler.start', lambda *a, **k: None)
     app = create_app()
     with app.app_context():
         yield app
