@@ -48,18 +48,27 @@ def create_app():
     from .blueprints.admin import admin_bp
     from .blueprints.printer_panel import panel_bp
     from .blueprints.mobile import mobile_bp
+    from .blueprints.scanning import scanning_bp
     
     app.register_blueprint(main_bp)
     app.register_blueprint(jobs_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(panel_bp)
     app.register_blueprint(mobile_bp)
+    app.register_blueprint(scanning_bp)
 
     # Create database tables
     with app.app_context():
         from . import models  # Import models to register them
+        from .config.config_manager import ConfigManager, MigrationManager
+        
         db.create_all()
         _create_default_data()
+        
+        # Initialize configuration and run migrations
+        ConfigManager.initialize_default_settings()
+        if MigrationManager.needs_migration():
+            MigrationManager.run_migrations()
 
     # Start LPR server in background thread
     threading.Thread(target=start_lpr_server, args=(app,), daemon=True).start()
