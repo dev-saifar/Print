@@ -242,7 +242,7 @@ function openMobilePrint() {
     // In a real app, this would open the print dialog
     setTimeout(() => {
         if (confirm('Select document to print?')) {
-            window.location.href = '{{ url_for("upload") }}';
+            window.location.href = '{{ url_for("main.upload") }}';
         }
     }, 1000);
 }
