@@ -17,40 +17,6 @@ from ..models import User, Printer, ScanJob
 
 scanning_bp = Blueprint('scanning', __name__, url_prefix='/scan')
 
-class ScanJob(db.Model):
-    """Track scanning operations"""
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    printer_id = db.Column(db.Integer, db.ForeignKey('printer.id'), nullable=False)
-    
-    # Scan settings
-    scan_type = db.Column(db.String(20), default='pdf')  # pdf, jpeg, png, tiff
-    resolution = db.Column(db.Integer, default=300)  # DPI
-    color_mode = db.Column(db.String(20), default='color')  # color, grayscale, bw
-    duplex = db.Column(db.Boolean, default=False)
-    
-    # Output settings
-    destination_type = db.Column(db.String(20), nullable=False)  # email, folder, download
-    destination_path = db.Column(db.String(500))  # email address or folder path
-    
-    # File info
-    filename = db.Column(db.String(255), nullable=False)
-    file_path = db.Column(db.String(500))
-    file_size = db.Column(db.Integer)
-    page_count = db.Column(db.Integer, default=1)
-    
-    # Status
-    status = db.Column(db.String(20), default='pending')  # pending, processing, completed, failed
-    error_message = db.Column(db.Text)
-    
-    # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    completed_at = db.Column(db.DateTime)
-    
-    # Relationships
-    user = db.relationship('User', backref='scan_jobs')
-    printer = db.relationship('Printer', backref='scan_jobs')
-
 @scanning_bp.route('/')
 @login_required
 def index():
