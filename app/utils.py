@@ -44,12 +44,14 @@ def get_file_pages(filepath):
 def process_print_job(job_id):
     """Process print job (Linux compatible simulation)"""
     try:
-        from flask import current_app
         from .models import PrintJob, User
         from datetime import datetime
         import time
-
-        with current_app.app_context():
+        from flask import current_app
+        
+        # Get app instance and create context
+        app = current_app._get_current_object()
+        with app.app_context():
             job = PrintJob.query.get(job_id)
             if not job or job.status != 'pending':
                 return

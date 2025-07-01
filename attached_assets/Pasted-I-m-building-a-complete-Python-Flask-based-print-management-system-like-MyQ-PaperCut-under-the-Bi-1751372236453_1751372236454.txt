@@ -1,0 +1,98 @@
+I’m building a complete Python Flask-based print management system like MyQ / PaperCut, under the Biztra brand.
+
+Current features implemented:
+
+✅ LPR print job reception
+
+✅ Job listing and status tracking
+
+✅ Web upload of jobs
+
+✅ Print release dashboard
+
+✅ Raw print job storage
+
+📌 I now want to expand with:
+
+📲 Web Portal Features
+Driverless print upload (PDF, DOCX, etc.)
+
+User can see pending jobs, select printer, and release
+
+Quota, billing, and policies per user or department
+
+Admin dashboard for reports, quotas, pricing
+
+Upload job → release at printer or from web
+
+🖥 Embedded Printer Panel Features (Future Phase)
+PIN or card login at printer (e.g., Kyocera panel)
+
+View and release pending jobs from printer
+
+"Easy Scan" button to scan to email/home folder
+
+Scan-to-folder/email with routing logic
+
+💸 Pricing, Quotas & Billing
+Define price per page (mono, color, duplex)
+
+Quota enforcement (pages/month)
+
+Allow "bulk quota boost" for departments
+
+Reports for usage by user/department/project
+
+💡 Technologies in use:
+Flask, Flask-Login, Flask-SQLAlchemy
+
+SQLite (dev), PostgreSQL (prod)
+
+LPR protocol, win32print (Windows print API)
+
+PDF tools (for preview), watchdog (for spool)
+
+HTML/JS frontend with Bootstrap
+
+🧩 Modules in app:
+
+routes.py – All routes
+
+lpr_server.py – Accepts print jobs
+
+monitor_print_queue.py – Optional local spool watcher
+
+models.py, utils.py, templates, static
+
+👇 What I want help with:
+
+Modularize better (split to jobs.py, admin.py, printers.py)
+
+Build the embedded panel module logic
+
+Setup scan-to-email/file structure
+
+Add upload job → preview → select printer → release
+
+Add quota & billing logic (in models.py and DB)
+
+Route scanner output by user
+
+Add pricing config UI and logic
+
+Generate DB migration setup (Flask-Migrate)
+
+✨ Final goal:
+A 100% open-source, customizable Biztra Print Manager with:
+
+Driverless printing
+
+Secure release from panel
+
+Scan-to-email
+
+Quotas, billing, analytics
+
+Mobile/web upload and release
+
+Please help me structure this and implement step by step.

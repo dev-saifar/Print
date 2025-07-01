@@ -42,9 +42,18 @@ def create_app():
     scheduler.init_app(app)
     scheduler.start()
 
-    # Register routes
-    from .routes import bp
-    app.register_blueprint(bp)
+    # Register blueprints
+    from .routes import bp as main_bp
+    from .blueprints.jobs import jobs_bp
+    from .blueprints.admin import admin_bp
+    from .blueprints.printer_panel import panel_bp
+    from .blueprints.mobile import mobile_bp
+    
+    app.register_blueprint(main_bp)
+    app.register_blueprint(jobs_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(panel_bp)
+    app.register_blueprint(mobile_bp)
 
     # Create database tables
     with app.app_context():
