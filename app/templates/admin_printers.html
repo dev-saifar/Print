@@ -6,6 +6,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2><i class="bi bi-printer me-2"></i>Printer Management</h2>
     <div class="d-flex gap-2">
+        <button id="refreshSnmpData" class="btn btn-outline-info">
+            <i class="bi bi-arrow-clockwise me-1"></i>Refresh SNMP Data
+        </button>
         <a href="{{ url_for('main.admin') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-1"></i>Back to Admin
         </a>
@@ -211,6 +214,225 @@
 </div>
 
 <script>
+// SNMP Printer Monitoring Functions
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh SNMP data every 2 minutes
+    setInterval(refreshSNMPData, 120000);
+    
+    // Refresh button click handler
+    document.getElementById('refreshSnmpData').addEventListener('click', function() {
+        refreshSNMPData();
+    });
+});
+
+function refreshSNMPData() {
+    const button = document.getElementById('refreshSnmpData');
+    const originalContent = button.innerHTML;
+    
+    // Show loading state
+    button.innerHTML = '<i class="bi bi-arrow-clockwise spinner-border spinner-border-sm me-1"></i>Refreshing...';
+    button.disabled = true;
+    
+    fetch('/api/printer_status')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                updatePrinterStatus(data.printers);
+                showToast('SNMP data refreshed successfully', 'success');
+            } else {
+                showToast('Error refreshing SNMP data: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('SNMP refresh error:', error);
+            showToast('Error refreshing SNMP data', 'error');
+        })
+        .finally(() => {
+            // Restore button state
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        });
+}
+
+function updatePrinterStatus(printers) {
+    Object.keys(printers).forEach(printerId => {
+        const printer = printers[printerId];
+        const row = document.querySelector(`[data-printer-id="${printerId}"]`);
+        
+        if (row) {
+            // Update status badge
+            const statusBadge = row.querySelector('.status-badge');
+            if (statusBadge) {
+                statusBadge.className = `badge status-badge ${getStatusBadgeClass(printer.status)}`;
+                statusBadge.textContent = printer.status.charAt(0).toUpperCase() + printer.status.slice(1);
+            }
+            
+            // Update total pages
+            const pagesElement = row.querySelector('.total-pages');
+            if (pagesElement && printer.total_pages) {
+                pagesElement.textContent = printer.total_pages.toLocaleString();
+            }
+            
+            // Update supply status
+            const supplyElement = row.querySelector('.supply-status');
+            if (supplyElement && printer.supply_status) {
+                supplyElement.className = `badge ${getSupplyBadgeClass(printer.supply_status)}`;
+                supplyElement.textContent = printer.supply_status.charAt(0).toUpperCase() + printer.supply_status.slice(1);
+            }
+            
+            // Update alerts count
+            const alertsElement = row.querySelector('.alerts-count');
+            if (alertsElement) {
+                const totalAlerts = (printer.critical_alerts || 0) + (printer.warning_alerts || 0);
+                alertsElement.textContent = totalAlerts;
+                alertsElement.className = `badge ${totalAlerts > 0 ? 'bg-warning' : 'bg-secondary'}`;
+            }
+            
+            // Update last seen
+            const lastSeenElement = row.querySelector('.last-seen');
+            if (lastSeenElement && printer.last_updated) {
+                const date = new Date(printer.last_updated);
+                lastSeenElement.textContent = date.toLocaleString();
+            }
+        }
+    });
+}
+
+function getStatusBadgeClass(status) {
+    const statusClasses = {
+        'online': 'bg-success',
+        'offline': 'bg-secondary',
+        'busy': 'bg-warning',
+        'error': 'bg-danger',
+        'warning': 'bg-warning'
+    };
+    return statusClasses[status] || 'bg-secondary';
+}
+
+function getSupplyBadgeClass(supplyStatus) {
+    const supplyClasses = {
+        'ok': 'bg-success',
+        'warning': 'bg-warning', 
+        'critical': 'bg-danger'
+    };
+    return supplyClasses[supplyStatus] || 'bg-secondary';
+}
+
+function viewPrinterDetails(printerId) {
+    fetch(`/api/printer_details/${printerId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showPrinterDetailsModal(data.printer);
+            } else {
+                showToast('Error getting printer details: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error getting printer details', 'error');
+        });
+}
+
+function showPrinterDetailsModal(printer) {
+    const modalHtml = `
+        <div class="modal fade" id="printerDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="bi bi-info-circle me-2"></i>Printer Details: ${printer.name}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Device Information</h6>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Model:</strong></td><td>${printer.model}</td></tr>
+                                    <tr><td><strong>Serial:</strong></td><td>${printer.serial_number}</td></tr>
+                                    <tr><td><strong>Location:</strong></td><td>${printer.location}</td></tr>
+                                    <tr><td><strong>Status:</strong></td><td><span class="badge ${getStatusBadgeClass(printer.status.toLowerCase())}">${printer.status}</span></td></tr>
+                                    <tr><td><strong>Firmware:</strong></td><td>${printer.firmware_version}</td></tr>
+                                    <tr><td><strong>Uptime:</strong></td><td>${Math.floor(printer.uptime / 86400)} days</td></tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Page Counters</h6>
+                                <table class="table table-sm">
+                                    <tr><td><strong>Total Pages:</strong></td><td>${printer.counters.total_pages.toLocaleString()}</td></tr>
+                                    <tr><td><strong>Color Pages:</strong></td><td>${printer.counters.color_pages.toLocaleString()}</td></tr>
+                                    <tr><td><strong>Duplex Pages:</strong></td><td>${printer.counters.duplex_pages.toLocaleString()}</td></tr>
+                                    <tr><td><strong>Large Pages:</strong></td><td>${printer.counters.large_pages.toLocaleString()}</td></tr>
+                                    <tr><td><strong>Jam Events:</strong></td><td>${printer.counters.jam_events}</td></tr>
+                                    <tr><td><strong>Maintenance:</strong></td><td>${printer.counters.maintenance_count}</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Supply Levels</h6>
+                                <div class="row">
+                                    ${printer.supplies.map(supply => `
+                                        <div class="col-md-6 mb-2">
+                                            <div class="d-flex justify-content-between">
+                                                <small>${supply.description}</small>
+                                                <small>${supply.percentage}%</small>
+                                            </div>
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar ${supply.percentage < 25 ? 'bg-danger' : supply.percentage < 50 ? 'bg-warning' : 'bg-success'}" 
+                                                     style="width: ${supply.percentage}%"></div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${printer.alerts.length > 0 ? `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>Active Alerts</h6>
+                                <div class="list-group">
+                                    ${printer.alerts.map(alert => `
+                                        <div class="list-group-item">
+                                            <div class="d-flex justify-content-between">
+                                                <span class="badge ${alert.severity === 'CRITICAL' ? 'bg-danger' : 'bg-warning'}">${alert.severity}</span>
+                                                <small>${new Date(alert.time).toLocaleString()}</small>
+                                            </div>
+                                            <p class="mb-1">${alert.description}</p>
+                                            <small class="text-muted">Location: ${alert.location}</small>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Remove existing modal
+    const existingModal = document.getElementById('printerDetailsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add new modal
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('printerDetailsModal'));
+    modal.show();
+}
+
 function testPrinter(printerId) {
     if (confirm('Send a test page to this printer?')) {
         fetch(`/admin/printer/${printerId}/test`, {
@@ -220,9 +442,9 @@ function testPrinter(printerId) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                alert('Test page sent successfully!');
+                showToast('Test page sent successfully!', 'success');
             } else {
-                alert('Error sending test page: ' + data.error);
+                showToast('Error sending test page: ' + data.error, 'error');
             }
         });
     }
@@ -238,10 +460,41 @@ function deletePrinter(printerId, printerName) {
             if (response.ok) {
                 location.reload();
             } else {
-                alert('Error deleting printer');
+                showToast('Error deleting printer', 'error');
             }
         });
     }
+}
+
+function showToast(message, type = 'info') {
+    const toastContainer = document.querySelector('.toast-container') || createToastContainer();
+    
+    const toast = document.createElement('div');
+    toast.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">${message}</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+    
+    toast.addEventListener('hidden.bs.toast', function() {
+        toast.remove();
+    });
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '1055';
+    document.body.appendChild(container);
+    return container;
 }
 </script>
 {% endblock %}

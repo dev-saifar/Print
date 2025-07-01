@@ -253,7 +253,7 @@ function openMobileScan() {
     // In a real app, this would open the camera
     setTimeout(() => {
         if (confirm('Start scanning document?')) {
-            window.location.href = '{{ url_for("scan_documents") }}';
+            window.location.href = '{{ url_for("main.scan_documents") }}';
         }
     }, 1000);
 }

@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Auto-refresh for pending jobs
     if (window.location.pathname.includes('/jobs') || window.location.pathname.includes('/dashboard')) {
         setInterval(function() {
-            const pendingBadges = document.querySelectorAll('.badge:contains("Pending")');
+            const pendingBadges = Array.from(document.querySelectorAll('.badge')).filter(badge => badge.textContent.includes('Pending'));
             if (pendingBadges.length > 0) {
                 // Only refresh if there are pending jobs
                 location.reload();

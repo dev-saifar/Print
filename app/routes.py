@@ -678,3 +678,212 @@ def admin_reset_user_password(user_id):
     db.session.commit()
     
     return jsonify({'success': True, 'password': temp_password})
+
+# SNMP Printer Monitoring API Routes
+@bp.route('/api/printer_status', methods=['GET'])
+@login_required
+def api_printer_status():
+    """API endpoint to get real-time printer status via SNMP"""
+    try:
+        # Import SNMP monitoring
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.abspath(__file__ + '/..')))
+        
+        from snmp_printer_monitoring import SNMPPrinterMonitor
+        import asyncio
+        
+        # Get all active printers
+        printers = Printer.query.filter_by(is_active=True).all()
+        
+        # Create SNMP monitor
+        monitor = SNMPPrinterMonitor()
+        
+        # Add printers to monitoring
+        for printer in printers:
+            if printer.ip_address:
+                # Detect vendor from model
+                vendor = 'generic'
+                if printer.model:
+                    model_lower = printer.model.lower()
+                    if 'hp' in model_lower or 'hewlett' in model_lower:
+                        vendor = 'hp'
+                    elif 'canon' in model_lower:
+                        vendor = 'canon'
+                    elif 'xerox' in model_lower:
+                        vendor = 'xerox'
+                
+                monitor.add_printer(printer.ip_address, 'public', vendor)
+        
+        # Monitor all printers (async)
+        async def get_all_printer_status():
+            results = await monitor.monitor_all_printers()
+            status_data = {}
+            
+            for ip, printer_info in results.items():
+                printer_db = Printer.query.filter_by(ip_address=ip).first()
+                if printer_db and printer_info:
+                    summary = monitor.get_printer_summary(printer_info)
+                    status_data[printer_db.id] = {
+                        'id': printer_db.id,
+                        'name': printer_db.name,
+                        'ip_address': ip,
+                        'status': summary['status'],
+                        'total_pages': summary['total_pages'],
+                        'supply_status': summary['supply_status'],
+                        'low_supplies': summary['low_supplies'],
+                        'critical_alerts': summary['critical_alerts'],
+                        'warning_alerts': summary['warning_alerts'],
+                        'last_updated': summary['last_updated'],
+                        'uptime_days': summary['uptime_days'],
+                        'supplies': [
+                            {
+                                'description': supply.description,
+                                'percentage': supply.percentage,
+                                'level': supply.level,
+                                'max_capacity': supply.max_capacity
+                            } for supply in printer_info.supplies
+                        ],
+                        'counters': {
+                            'total_pages': printer_info.counters.total_pages,
+                            'color_pages': printer_info.counters.color_pages,
+                            'duplex_pages': printer_info.counters.duplex_pages,
+                            'jam_events': printer_info.counters.jam_events
+                        }
+                    }
+                elif printer_db:
+                    # Printer not responding
+                    status_data[printer_db.id] = {
+                        'id': printer_db.id,
+                        'name': printer_db.name,
+                        'ip_address': printer_db.ip_address,
+                        'status': 'offline',
+                        'error': 'No SNMP response',
+                        'last_updated': datetime.utcnow().isoformat()
+                    }
+            
+            return status_data
+        
+        # Run async function
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            status_data = loop.run_until_complete(get_all_printer_status())
+        finally:
+            loop.close()
+        
+        return jsonify({
+            'success': True,
+            'printers': status_data,
+            'timestamp': datetime.utcnow().isoformat()
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'timestamp': datetime.utcnow().isoformat()
+        }), 500
+
+@bp.route('/api/printer_details/<int:printer_id>', methods=['GET'])
+@login_required
+def api_printer_details(printer_id):
+    """Get detailed SNMP information for a specific printer"""
+    try:
+        printer = Printer.query.get_or_404(printer_id)
+        
+        if not printer.ip_address:
+            return jsonify({
+                'success': False,
+                'error': 'No IP address configured for this printer'
+            }), 400
+        
+        # Import SNMP monitoring
+        import sys
+        import os
+        sys.path.append(os.path.dirname(os.path.abspath(__file__ + '/..')))
+        
+        from snmp_printer_monitoring import SNMPPrinterMonitor
+        import asyncio
+        
+        # Detect vendor
+        vendor = 'generic'
+        if printer.model:
+            model_lower = printer.model.lower()
+            if 'hp' in model_lower or 'hewlett' in model_lower:
+                vendor = 'hp' 
+            elif 'canon' in model_lower:
+                vendor = 'canon'
+            elif 'xerox' in model_lower:
+                vendor = 'xerox'
+        
+        # Create monitor and get detailed info
+        monitor = SNMPPrinterMonitor()
+        monitor.add_printer(printer.ip_address, 'public', vendor)
+        
+        async def get_detailed_info():
+            printer_info = await monitor.get_printer_info(printer.ip_address)
+            if printer_info:
+                return {
+                    'success': True,
+                    'printer': {
+                        'name': printer_info.name,
+                        'model': printer_info.model,
+                        'serial_number': printer_info.serial_number,
+                        'location': printer_info.location,
+                        'status': printer_info.status.name,
+                        'uptime': printer_info.uptime,
+                        'firmware_version': printer_info.firmware_version,
+                        'counters': {
+                            'total_pages': printer_info.counters.total_pages,
+                            'color_pages': printer_info.counters.color_pages,
+                            'duplex_pages': printer_info.counters.duplex_pages,
+                            'large_pages': printer_info.counters.large_pages,
+                            'jam_events': printer_info.counters.jam_events,
+                            'maintenance_count': printer_info.counters.maintenance_count
+                        },
+                        'supplies': [
+                            {
+                                'index': supply.index,
+                                'description': supply.description,
+                                'type': supply.type,
+                                'level': supply.level,
+                                'max_capacity': supply.max_capacity,
+                                'percentage': supply.percentage
+                            } for supply in printer_info.supplies
+                        ],
+                        'alerts': [
+                            {
+                                'index': alert.index,
+                                'severity': alert.severity.name,
+                                'group': alert.group,
+                                'location': alert.location,
+                                'code': alert.code,
+                                'description': alert.description,
+                                'time': alert.time.isoformat()
+                            } for alert in printer_info.alerts
+                        ],
+                        'last_updated': printer_info.last_updated.isoformat()
+                    }
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': 'Failed to retrieve printer information via SNMP'
+                }
+        
+        # Run async function
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            result = loop.run_until_complete(get_detailed_info())
+        finally:
+            loop.close()
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
