@@ -593,7 +593,9 @@ def admin_email_to_print():
     if current_user.role != 'admin':
         abort(403)
     
-    return render_template('admin_email_to_print.html')
+    users = User.query.all()
+    printers = Printer.query.filter_by(is_active=True).all()
+    return render_template('admin_email_to_print.html', users=users, printers=printers)
 
 # User management helper routes
 @bp.route('/admin/user/add', methods=['POST'])

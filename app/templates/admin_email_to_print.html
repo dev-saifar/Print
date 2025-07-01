@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Email-to-Print Configuration - Print Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-envelope-at me-2"></i>Email-to-Print Configuration
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Configuration Panel -->
+                    <div class="col-md-6">
+                        <h6 class="mb-3">System Configuration</h6>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Configure email addresses and settings for email-to-print functionality.
+                        </div>
+                        
+                        <form method="POST">
+                            <div class="mb-3">
+                                <label for="email_domain" class="form-label">Email Domain</label>
+                                <input type="text" class="form-control" name="email_domain" 
+                                       value="print.company.com" placeholder="print.company.com">
+                                <div class="form-text">Users will send emails to: username@print.company.com</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="default_printer" class="form-label">Default Printer</label>
+                                <select class="form-select" name="default_printer">
+                                    <option value="">Auto-select based on user department</option>
+                                    {% for printer in printers %}
+                                    <option value="{{ printer.id }}">{{ printer.name }} - {{ printer.location }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" name="require_authentication" 
+                                           id="require_authentication" checked>
+                                    <label class="form-check-label" for="require_authentication">
+                                        Require sender authentication
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input type="checkbox" class="form-check-input" name="auto_duplex" 
+                                           id="auto_duplex" checked>
+                                    <label class="form-check-label" for="auto_duplex">
+                                        Default to duplex printing
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check2 me-1"></i>Save Configuration
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- User Email Addresses -->
+                    <div class="col-md-6">
+                        <h6 class="mb-3">User Email Addresses</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>User</th>
+                                        <th>Email Address</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for user in users %}
+                                    <tr>
+                                        <td>{{ user.username }}</td>
+                                        <td>
+                                            <code>{{ user.username }}@print.company.com</code>
+                                        </td>
+                                        <td>
+                                            {% if user.is_active %}
+                                                <span class="badge bg-success">Active</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent Email Jobs -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h6 class="mb-3">Recent Email Print Jobs</h6>
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>From</th>
+                                        <th>Subject</th>
+                                        <th>Attachments</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Dec 30, 2024 10:30 AM</td>
+                                        <td>john.doe@company.com</td>
+                                        <td>Print quarterly report</td>
+                                        <td>report_q4.pdf (2.3 MB)</td>
+                                        <td><span class="badge bg-success">Completed</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dec 30, 2024 09:45 AM</td>
+                                        <td>jane.smith@company.com</td>
+                                        <td>Meeting agenda</td>
+                                        <td>agenda.docx (156 KB)</td>
+                                        <td><span class="badge bg-warning">Processing</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>Dec 30, 2024 08:20 AM</td>
+                                        <td>bob.wilson@company.com</td>
+                                        <td>Contract review</td>
+                                        <td>contract.pdf (890 KB)</td>
+                                        <td><span class="badge bg-danger">Failed</span></td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Instructions -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <h6 class="mb-3">How to Use Email-to-Print</h6>
+                        <div class="alert alert-light">
+                            <h6>For Users:</h6>
+                            <ol>
+                                <li>Send an email to <code>your-username@print.company.com</code></li>
+                                <li>Attach the documents you want to print</li>
+                                <li>Use subject line keywords for special options:
+                                    <ul>
+                                        <li><code>[URGENT]</code> - High priority printing</li>
+                                        <li><code>[COLOR]</code> - Force color printing</li>
+                                        <li><code>[SINGLE]</code> - Single-sided printing</li>
+                                        <li><code>[COPIES:5]</code> - Print 5 copies</li>
+                                    </ul>
+                                </li>
+                                <li>You'll receive a confirmation email with job details</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
