@@ -7,7 +7,6 @@ from flask import redirect, url_for
 from dotenv import load_dotenv
 import os
 import threading
-from .lpr_server import start_lpr_server
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # for top-level print_jobs/
 # Load environment variables from .env
 load_dotenv()
@@ -40,6 +39,7 @@ def create_app():
     from .routes import bp
     app.register_blueprint(bp)
 
+    from .lpr_server import start_lpr_server
     threading.Thread(target=start_lpr_server, args=(app,), daemon=True).start()
 
     return app

@@ -146,7 +146,8 @@ def upload():
             
             # Save file
             filename = str(uuid.uuid4()) + '_' + secure_filename(file.filename)
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+            upload_folder = current_app.config.get('UPLOAD_FOLDER', os.path.join(current_app.root_path, 'uploads'))
+            file_path = os.path.join(upload_folder, filename)
             file.save(file_path)
             
             # Get page count
