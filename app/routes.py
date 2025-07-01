@@ -463,7 +463,8 @@ def admin_edit_printer(printer_id):
         flash(f'Printer {printer.name} updated successfully!', 'success')
         return redirect(url_for('main.admin_printers'))
     
-    return render_template('admin_edit_printer.html', printer=printer)
+    departments = Department.query.all()
+    return render_template('admin_edit_printer.html', printer=printer, departments=departments)
 
 @bp.route('/admin/printer/<int:printer_id>/delete', methods=['POST'])
 @login_required
