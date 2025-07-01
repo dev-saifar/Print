@@ -42,34 +42,51 @@ def get_file_pages(filepath):
         return 1
 
 def process_print_job(job_id):
-    """Simulate print job processing"""
+    """Send job to actual printer using Windows print API"""
     try:
+        import win32api
+        import win32print
         from . import app
+        from .models import PrintJob, User
+        from datetime import datetime
+        import time
+
         with app.app_context():
             job = PrintJob.query.get(job_id)
             if not job or job.status != 'pending':
                 return
-            
-            # Update job status to printing
+
+            file_path = job.file_path
+            if not os.path.exists(file_path):
+                job.status = 'failed'
+                job.notes = 'File not found'
+                db.session.commit()
+                return
+
+            # Update job status
             job.status = 'printing'
             job.started_at = datetime.utcnow()
             db.session.commit()
-            
-            # Simulate printing time based on pages and priority
-            import time
-            processing_time = job.total_pages * job.copies * 0.5  # 0.5 seconds per page
-            if job.priority == 'high':
-                processing_time *= 0.7
-            elif job.priority == 'low':
-                processing_time *= 1.3
-                
-            time.sleep(min(processing_time, 30))  # Cap at 30 seconds for demo
-            
-            # Complete the job
-            job.status = 'completed'
-            job.completed_at = datetime.utcnow()
-            
-            # Deduct cost from user balance
+
+            # Send to printer
+            printer_name = win32print.GetDefaultPrinter()
+            try:
+                win32api.ShellExecute(
+                    0,
+                    "print",
+                    file_path,
+                    f'/d:"{printer_name}"',
+                    ".",
+                    0
+                )
+                time.sleep(3)  # Small wait to allow system print to start
+                job.status = 'completed'
+                job.completed_at = datetime.utcnow()
+            except Exception as e:
+                job.status = 'failed'
+                job.notes = f'Print error: {str(e)}'
+
+            # Deduct cost
             user = User.query.get(job.user_id)
             if user and user.balance >= job.total_cost:
                 user.balance -= job.total_cost
@@ -77,10 +94,9 @@ def process_print_job(job_id):
             else:
                 job.status = 'failed'
                 job.notes = 'Insufficient balance'
-            
+
             db.session.commit()
-            logging.info(f"Print job {job_id} completed")
-            
+
     except Exception as e:
         logging.error(f"Error processing print job {job_id}: {e}")
         try:
@@ -89,10 +105,13 @@ def process_print_job(job_id):
                 job = PrintJob.query.get(job_id)
                 if job:
                     job.status = 'failed'
-                    job.notes = f'Processing error: {str(e)}'
+                    job.notes = f'Unhandled exception: {str(e)}'
                     db.session.commit()
         except:
             pass
+def get_windows_printers():
+    import win32print
+    return [printer[2] for printer in win32print.EnumPrinters(2)]
 
 def calculate_environmental_impact(pages):
     """Calculate environmental impact of printing"""

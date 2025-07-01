@@ -7,6 +7,8 @@ from flask_login import LoginManager
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 from apscheduler.schedulers.background import BackgroundScheduler
+from dotenv import load_dotenv
+load_dotenv()
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -23,7 +25,10 @@ def create_app():
     app.secret_key = os.environ.get("SESSION_SECRET")
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+        "DATABASE_URL", "sqlite:///database.db"
+    )
+
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_recycle": 300,
         "pool_pre_ping": True,
@@ -47,6 +52,11 @@ def create_app():
         app.register_blueprint(bp)
         db.create_all()
         _create_default_data()
+
+        # Start LPR listener thread
+        from .lpr_server import start_lpr_server
+        import threading
+        threading.Thread(target=start_lpr_server, daemon=True).start()
 
     return app
 

@@ -891,3 +891,20 @@ def api_printer_details(printer_id):
             'success': False,
             'error': str(e)
         }), 500
+@bp.route("/release/<int:job_id>", methods=["POST"])
+@login_required
+def release_job(job_id):
+    job = PrintQueue.query.get_or_404(job_id)
+    try:
+        win32api.ShellExecute(
+            0, "print", job.spool_path, f'/d:"Kyocera Real Printer"', ".", 0
+        )
+        job.status = 'released'
+        db.session.commit()
+        flash("Job sent to printer!")
+    except Exception as e:
+        job.status = 'failed'
+        job.notes = str(e)
+        db.session.commit()
+        flash("Print failed!")
+    return redirect(url_for("main.dashboard"))
