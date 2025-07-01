@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_apscheduler import APScheduler
 from werkzeug.middleware.proxy_fix import ProxyFix
+from dotenv import load_dotenv
 import os
 import logging
 import threading
@@ -17,6 +18,7 @@ login_manager.login_view = 'main.login'
 login_manager.login_message_category = 'info'
 
 def create_app():
+    load_dotenv()
     app = Flask(__name__)
     
     # Configure for Replit environment
