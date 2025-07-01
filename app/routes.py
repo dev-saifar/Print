@@ -396,29 +396,6 @@ def admin_printers():
 
     return render_template('admin_printers.html', printers=printers)
 
-@bp.route('/admin/printers/discover', methods=['GET', 'POST'])
-@login_required
-def discover_printers_route():
-    if current_user.role != 'admin':
-        abort(403)
-
-    if request.method == 'POST':
-        data = request.get_json() or {}
-        printers_data = data.get('printers', [])
-        for p in printers_data:
-            if not Printer.query.filter_by(ip_address=p.get('ip')).first():
-                printer = Printer(
-                    name=p.get('model') or p['ip'],
-                    model=p.get('model', ''),
-                    ip_address=p['ip']
-                )
-                db.session.add(printer)
-        db.session.commit()
-        return jsonify({'success': True})
-
-    subnet = request.args.get('subnet', '192.168.1.0/24')
-    discovered = discover_printers(subnet)
-    return jsonify({'printers': discovered})
 
 @bp.route('/admin/printer/add', methods=['GET', 'POST'])
 @login_required

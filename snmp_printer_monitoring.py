@@ -6,6 +6,7 @@ Retrieves real-time printer status, alerts, counters, and supplies information
 import asyncio
 import json
 import logging
+import ipaddress
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
@@ -70,6 +71,9 @@ PRINTER_SNMP_OIDS = {
     'alert_description': '1.3.6.1.2.1.43.18.1.1.6',
     'alert_time': '1.3.6.1.2.1.43.18.1.1.7'
 }
+
+# Commonly used generic OIDs
+SERIAL_OID = '1.3.6.1.2.1.43.5.1.1.17.1'
 
 # Vendor-specific OIDs
 VENDOR_OIDS = {
@@ -268,11 +272,22 @@ class SNMPPrinterMonitor:
                 try:
                     # Simulate SNMP get
                     value = await self._snmp_get(ip_address, community, oid)
-                    device_info[key] = value
+                    device_info[key] = value if value is not None else 'Unknown'
                 except Exception as e:
                     self.logger.warning(f"Failed to get {key} for {ip_address}: {e}")
                     device_info[key] = 'Unknown'
-            
+
+            if 'description' in device_info and 'model' not in device_info:
+                device_info['model'] = device_info['description']
+
+            # Attempt to retrieve a generic serial number
+            try:
+                serial = await self._snmp_get(ip_address, community, SERIAL_OID)
+                if serial:
+                    device_info['serial'] = serial
+            except Exception as e:
+                self.logger.warning(f"Failed to get serial for {ip_address}: {e}")
+
             return device_info
             
         except Exception as e:
@@ -565,6 +580,37 @@ class SNMPPrinterMonitor:
                 results[ip_address] = None
         
         return results
+
+async def discover_network_printers(subnet: str) -> List[Dict[str, Any]]:
+    """Scan a subnet for network printers using SNMP."""
+    monitor = SNMPPrinterMonitor()
+    printers: List[Dict[str, Any]] = []
+
+    network = ipaddress.ip_network(subnet, strict=False)
+    ip_list = [str(ip) for ip in network.hosts()]
+
+    tasks = {}
+    for ip in ip_list:
+        monitor.add_printer(ip)
+        tasks[ip] = asyncio.create_task(monitor.get_printer_info(ip))
+
+    for ip, task in tasks.items():
+        try:
+            info = await task
+        except Exception:
+            info = None
+
+        if info and (info.model not in (None, 'Unknown') or info.name not in (None, 'Unknown')):
+            printers.append({
+                'ip': ip,
+                'name': info.name or 'Unknown',
+                'model': info.model,
+                'serial_number': info.serial_number,
+                'status': info.status.name.lower(),
+                'location': info.location,
+            })
+
+    return printers
     
     def get_printer_summary(self, printer_info: PrinterInfo) -> Dict[str, Any]:
         """Generate a summary of printer status"""
