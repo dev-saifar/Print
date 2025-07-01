@@ -6,6 +6,8 @@ from flask_migrate import Migrate
 from flask import redirect, url_for
 from dotenv import load_dotenv
 import os
+import threading
+from .lpr_server import start_lpr_server
 basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # for top-level print_jobs/
 # Load environment variables from .env
 load_dotenv()
@@ -24,6 +26,9 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'your-default-secret')
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI', 'sqlite:///print.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config["UPLOAD_FOLDER"] = os.path.join(app.root_path, "uploads")
+    app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
+    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     # Initialize extensions with app
     db.init_app(app)
@@ -34,6 +39,8 @@ def create_app():
 
     from .routes import bp
     app.register_blueprint(bp)
+
+    threading.Thread(target=start_lpr_server, args=(app,), daemon=True).start()
 
     return app
 
