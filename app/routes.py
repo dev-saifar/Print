@@ -501,16 +501,30 @@ def admin_add_policy():
         abort(403)
     
     if request.method == 'POST':
+        # Helper function to safely convert form values
+        def safe_int(value, default=0):
+            try:
+                return int(value) if value and value.strip() else default
+            except (ValueError, TypeError):
+                return default
+        
+        def safe_float(value, default=0.0):
+            try:
+                return float(value) if value and value.strip() else default
+            except (ValueError, TypeError):
+                return default
+        
         policy = PrintPolicy(
             name=request.form['name'],
             description=request.form.get('description', ''),
-            force_duplex_over_pages=int(request.form.get('force_duplex_over_pages', 0)),
-            force_bw_over_pages=int(request.form.get('force_bw_over_pages', 0)),
-            max_pages_per_job=int(request.form.get('max_pages_per_job', 0)),
-            max_copies=int(request.form.get('max_copies', 10)),
-            color_cost_multiplier=float(request.form.get('color_cost_multiplier', 1.0)),
-            bw_cost_multiplier=float(request.form.get('bw_cost_multiplier', 1.0)),
+            force_duplex_over_pages=safe_int(request.form.get('force_duplex_over_pages'), 0),
+            force_bw_over_pages=safe_int(request.form.get('force_bw_over_pages'), 0),
+            max_pages_per_job=safe_int(request.form.get('max_pages_per_job'), 0),
+            max_copies=safe_int(request.form.get('max_copies'), 10),
+            color_cost_multiplier=safe_float(request.form.get('color_cost_multiplier'), 1.0),
+            bw_cost_multiplier=safe_float(request.form.get('bw_cost_multiplier'), 1.0),
             user_role=request.form.get('user_role') if request.form.get('user_role') else None,
+            department_id=safe_int(request.form.get('department_id'), 0) if request.form.get('department_id') else None,
             is_active='is_active' in request.form
         )
         
@@ -520,7 +534,8 @@ def admin_add_policy():
         flash(f'Print policy {policy.name} created successfully!', 'success')
         return redirect(url_for('main.admin_policies'))
     
-    return render_template('admin_add_policy.html')
+    departments = Department.query.all()
+    return render_template('admin_add_policy.html', departments=departments)
 
 # Scanning Routes
 @bp.route('/scan')
