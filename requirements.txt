@@ -28,3 +28,4 @@ flask-migrate
 python-dotenv
 qrcode
 watchdog
+pysnmp>=7.1.21

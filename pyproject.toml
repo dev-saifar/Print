@@ -15,4 +15,5 @@ dependencies = [
     "apscheduler>=3.11.0",
     "pypdf2>=3.0.1",
     "pillow>=11.2.1",
+    "pysnmp>=7.1.21",
 ]
