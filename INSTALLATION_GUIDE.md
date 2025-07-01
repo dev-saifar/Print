@@ -14,9 +14,16 @@ sudo apt install -y cups cups-client cups-bsd cups-filters
 # Install Python packages for print handling
 pip install pyipp python-cups pycups
 
+# Load environment variables from a `.env` file
+pip install python-dotenv
+
 # Install additional print protocol support
 sudo apt install -y samba-client cifs-utils
 ```
+
+Make sure a `.env` file exists with required configuration values such as
+`DATABASE_URL` and `SESSION_SECRET`. The application uses `python-dotenv` and
+invokes `load_dotenv()` during startup to load these variables.
 
 ### B. Configure CUPS for Print Management
 ```bash
