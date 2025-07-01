@@ -6,7 +6,7 @@ from flask_migrate import Migrate
 from flask import redirect, url_for
 from dotenv import load_dotenv
 import os
-
+basedir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))  # for top-level print_jobs/
 # Load environment variables from .env
 load_dotenv()
 
