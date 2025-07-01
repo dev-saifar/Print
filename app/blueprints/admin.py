@@ -9,7 +9,15 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, desc
 
 from .. import db
-from ..models import User, PrintJob, Department, SystemSettings, Printer, PrintPolicy
+from ..models import (
+    User,
+    PrintJob,
+    Department,
+    SystemSettings,
+    Printer,
+    PrintPolicy,
+    PrintQueue,
+)
 from ..utils import calculate_environmental_impact
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/admin')
@@ -346,3 +354,12 @@ def update_settings():
     db.session.commit()
     flash('Settings updated successfully', 'success')
     return redirect(url_for('admin.settings'))
+
+
+@admin_bp.route('/print-queue')
+@login_required
+@admin_required
+def print_queue():
+    """View incoming LPR jobs saved in the print queue"""
+    queue = PrintQueue.query.order_by(PrintQueue.timestamp.desc()).all()
+    return render_template('admin/print_queue.html', queue=queue)
