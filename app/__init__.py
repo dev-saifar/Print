@@ -20,7 +20,7 @@ def create_app():
     app = Flask(__name__)
     
     # Configure for Replit environment
-    app.secret_key = os.environ.get("SESSION_SECRET")
+    app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key-change-in-production")
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     
     # Database configuration
