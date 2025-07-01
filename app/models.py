@@ -357,14 +357,16 @@ class ScanJob(db.Model):
 
 class PrintQueue(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    filename = db.Column(db.String(255), nullable=False)
-    user_ip = db.Column(db.String(100), nullable=False)
-    username = db.Column(db.String(100), nullable=True)  # LPR username
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    filename = db.Column(db.String(255))
+    user = db.Column(db.String(100))           # extracted from LPR
+    user_ip = db.Column(db.String(100))
+    queue_name = db.Column(db.String(50))
     status = db.Column(db.String(50), default="pending")
-    pages = db.Column(db.Integer, default=1)
-    copies = db.Column(db.Integer, default=1)
-    printer_used = db.Column(db.String(100), nullable=True)
-    queue_name = db.Column(db.String(100), nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    host = db.Column(db.String(100))           # H<hostname>
+    job_size = db.Column(db.Integer)           # os.path.getsize(filepath)
+    copies = db.Column(db.Integer, default=1)  # Optional
+    printed_at = db.Column(db.DateTime)        # on release
+
 
 
