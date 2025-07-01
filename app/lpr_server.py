@@ -32,6 +32,13 @@ def handle_client(conn, addr, flask_app):
         queue_name = raw[1:].split(b'\n', 1)[0].decode('utf-8').strip()
         print(f"[📦] Queue requested: {queue_name}")
 
+        # Acknowledge receipt of the queue name/command
+        try:
+            conn.sendall(b'\x00')
+            print("[➡️] ACK sent for queue name")
+        except Exception as ack_err:
+            print(f"[❌] Failed to send queue ACK: {ack_err}")
+
         queue_folder = os.path.join(SAVE_FOLDER, queue_name)
         os.makedirs(queue_folder, exist_ok=True)
 
@@ -47,6 +54,13 @@ def handle_client(conn, addr, flask_app):
                 f.write(chunk)
 
         print(f"[✅] Job saved: {filepath}")
+
+        # Inform the client that the job was stored successfully
+        try:
+            conn.sendall(b'\x00')
+            print("[➡️] ACK sent for job saved")
+        except Exception as ack_err:
+            print(f"[❌] Failed to send final ACK: {ack_err}")
 
         # Store to DB with Flask app context
         with flask_app.app_context():
