@@ -4,6 +4,8 @@ Handles user management, system settings, and administrative functions
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_required, current_user
+import asyncio
+from snmp_printer_monitoring import discover_network_printers
 from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
 from sqlalchemy import func, desc
@@ -218,6 +220,42 @@ def add_printer():
     
     departments = Department.query.all()
     return render_template('admin/add_printer.html', departments=departments)
+
+
+@admin_bp.route('/printers/discover', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def discover_printers():
+    """Discover network printers via SNMP."""
+    if request.method == 'POST':
+        data = request.get_json() or {}
+        printers_data = data.get('printers', [])
+        for p in printers_data:
+            if not Printer.query.filter_by(ip_address=p.get('ip')).first():
+                printer = Printer(
+                    name=p.get('name') or p.get('model') or p['ip'],
+                    model=p.get('model', ''),
+                    location=p.get('location', ''),
+                    ip_address=p['ip'],
+                    status=p.get('status', 'offline'),
+                )
+                db.session.add(printer)
+        db.session.commit()
+        return jsonify({'success': True})
+
+    subnet = request.args.get('subnet', '192.168.1.0/24')
+
+    async def run_scan():
+        return await discover_network_printers(subnet)
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        printers = loop.run_until_complete(run_scan())
+    finally:
+        loop.close()
+
+    return jsonify({'printers': printers})
 
 @admin_bp.route('/policies')
 @login_required
