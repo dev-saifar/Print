@@ -156,8 +156,16 @@ class PrintPolicy(db.Model):
 
 class PrintQueue(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    file_name = db.Column(db.String(200))
-    spool_path = db.Column(db.String(300))
-    status = db.Column(db.String(50), default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    filename = db.Column(db.String(255), nullable=False)
+    user_ip = db.Column(db.String(100), nullable=False)
+    username = db.Column(db.String(100), nullable=True)  # LPR username
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    status = db.Column(db.String(50), default="pending")
+    pages = db.Column(db.Integer, default=1)
+    copies = db.Column(db.Integer, default=1)
+    printer_used = db.Column(db.String(100), nullable=True)
+    queue_name = db.Column(db.String(100), nullable=True)  # ✅ Add this line
 
+def init_app(app):
+    db.init_app(app)
+    migrate.init_app(app, db)

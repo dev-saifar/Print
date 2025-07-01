@@ -8,6 +8,13 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, desc
 import PyPDF2
 import io
+from .models import PrintQueue
+import win32print
+import win32api
+from flask import request, jsonify
+from datetime import datetime
+from sqlalchemy import func
+from .utils import get_windows_printers
 
 from . import db, scheduler
 from .models import User, PrintJob, Department, SystemSettings, Printer, PrintPolicy
@@ -198,12 +205,13 @@ def jobs():
     
     if status_filter != 'all':
         query = query.filter_by(status=status_filter)
-    
-    jobs = query.order_by(desc(PrintJob.created_at)).paginate(
+
+    paginated_jobs = query.order_by(desc(PrintJob.created_at)).paginate(
         page=page, per_page=10, error_out=False
     )
-    
-    return render_template('jobs.html', jobs=jobs, status_filter=status_filter)
+    printers = get_windows_printers()
+    return render_template("jobs.html", jobs=paginated_jobs, status_filter=status_filter, printers=printers)
+
 
 @bp.route('/job/<int:job_id>/cancel', methods=['POST'])
 @login_required
@@ -891,20 +899,63 @@ def api_printer_details(printer_id):
             'success': False,
             'error': str(e)
         }), 500
+
+@bp.route('/job/<int:job_id>/view')
+def view_job(job_id):
+    job = PrintJob.query.get_or_404(job_id)
+
+    return send_file(job.file_path, mimetype='application/pdf')
+
 @bp.route("/release/<int:job_id>", methods=["POST"])
-@login_required
 def release_job(job_id):
-    job = PrintQueue.query.get_or_404(job_id)
-    try:
-        win32api.ShellExecute(
-            0, "print", job.spool_path, f'/d:"Kyocera Real Printer"', ".", 0
+    job = PrintJob.query.get_or_404(job_id)
+
+
+    if job.status != "pending":
+        return jsonify({"error": "Job already released or invalid status"}), 400
+
+    # Quota logic — assume 500 pages/month per user for now
+    user = job.username
+    now = datetime.now()
+    current_month = now.strftime("%Y-%m")
+    total_jobs_this_month = (
+        PrintJob.query
+
+        .filter(
+            PrintQueue.username == user,
+            PrintQueue.status == "printed",
+            func.strftime("%Y-%m", PrintQueue.created_at) == current_month
         )
-        job.status = 'released'
+        .count()
+    )
+
+    if total_jobs_this_month >= 500:
+        return jsonify({"error": "Monthly quota exceeded"}), 403
+
+    # Get printer name from POST
+    printer_name = request.form.get("printer_name")
+    if not printer_name:
+        flash("Printer not selected.", "danger")
+        return redirect(url_for("main.jobs"))
+
+    # Send to printer
+    file_path = job.file_path
+    try:
+        hPrinter = win32print.OpenPrinter(printer_name)
+        hJob = win32print.StartDocPrinter(hPrinter, 1, ("Print Job", None, "RAW"))
+        win32print.StartPagePrinter(hPrinter)
+
+        with open(file_path, "rb") as f:
+            win32print.WritePrinter(hPrinter, f.read())
+
+        win32print.EndPagePrinter(hPrinter)
+        win32print.EndDocPrinter(hPrinter)
+        win32print.ClosePrinter(hPrinter)
+
+        job.status = "printed"
+        job.released_at = datetime.now()
         db.session.commit()
-        flash("Job sent to printer!")
+        return jsonify({"success": True}), 200
+
     except Exception as e:
-        job.status = 'failed'
-        job.notes = str(e)
-        db.session.commit()
-        flash("Print failed!")
-    return redirect(url_for("main.dashboard"))
+        return jsonify({"error": f"Print failed: {e}"}), 500
